@@ -92,7 +92,7 @@
 
     /* History table */
     .history-row {
-      display: grid; grid-template-columns: 90px 1fr 80px 60px 70px;
+      display: grid; grid-template-columns: 90px 1fr 80px 56px 56px 65px;
       align-items: center; gap: 10px;
       padding: 12px 0; border-bottom: 1px solid var(--border);
       font-size: 0.88rem;
@@ -101,6 +101,7 @@
     .history-date { color: var(--text-dim); font-size: 0.78rem; }
     .history-game { font-weight: 600; }
     .history-score { font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--accent); }
+    .history-wpm   { font-size: 0.82rem; font-weight: 700; color: #A78BFA; }
     .history-place { text-align: center; }
     .place-badge {
       display: inline-block; padding: 2px 8px; border-radius: 50px; font-size: 0.72rem;
@@ -112,6 +113,12 @@
     .place-n { background: rgba(255,255,255,0.06); color: var(--text-muted); }
 
     .history-theme { font-size: 0.75rem; color: var(--text-dim); }
+
+    .public-badge {
+      display: inline-block; background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);
+      border-radius: 50px; padding: 3px 12px; font-size: 0.75rem; font-weight: 600;
+      color: var(--primary-light); margin-bottom: 4px;
+    }
 
     .empty-state {
       text-align: center; padding: 36px 0; color: var(--text-dim); font-size: 0.9rem;
@@ -182,6 +189,7 @@
       <div class="stat-box"><div class="stat-box-num" id="s-wins">—</div><div class="stat-box-label">Wins</div></div>
       <div class="stat-box"><div class="stat-box-num" id="s-best">—</div><div class="stat-box-label">Best Score</div></div>
       <div class="stat-box"><div class="stat-box-num" id="s-avg">—</div><div class="stat-box-label">Avg Score</div></div>
+      <div class="stat-box" style="grid-column:1/-1"><div class="stat-box-num" id="s-wpm" style="color:#A78BFA">—</div><div class="stat-box-label">Best WPM</div></div>
     </div>
   </aside>
 
@@ -189,7 +197,7 @@
   <div class="profile-main">
 
     <!-- Edit profile -->
-    <div class="panel">
+    <div class="panel" id="edit-panel">
       <div class="panel-title">Edit Profile</div>
       <form class="edit-form" id="edit-form" onsubmit="saveProfile(event)">
         <label>Username<input type="text" id="edit-username" maxlength="40" required/></label>
@@ -213,115 +221,144 @@
 <script>
 'use strict';
 
-let profileUser = null;
+// Detect public profile view: /u/:username
+const _path        = window.location.pathname;
+const isPublicView = _path.startsWith('/u/');
+const viewUsername = isPublicView ? decodeURIComponent(_path.replace(/^\/u\//, '').split('/')[0]) : null;
+
+let currentUser = null;
 
 async function init() {
+  // Always fetch logged-in user for navbar (may be null for guests)
   try {
     const res = await fetch('/api/auth/me', { credentials: 'include' });
-    if (!res.ok) { showNotLogged(); return; }
-    const data = await res.json();
-    if (!data.user) { showNotLogged(); return; }
-    profileUser = data.user;
-    showNav(data.user);
-    loadProfile();
-  } catch {
-    showNotLogged();
+    if (res.ok) {
+      const d = await res.json();
+      if (d.user) { currentUser = d.user; showNav(d.user); }
+    }
+  } catch {}
+
+  if (isPublicView) {
+    await loadPublicProfile();
+  } else {
+    // Own profile — must be logged in
+    if (!currentUser) { showNotLogged(); return; }
+    loadOwnProfile();
   }
 }
 
-function showNotLogged() {
-  document.getElementById('not-logged-view').classList.remove('hidden');
-  document.getElementById('profile-view').classList.add('hidden');
-  const navAuth = document.getElementById('nav-auth');
-  if (navAuth) navAuth.classList.remove('hidden');
-}
+/* ── Public profile ─────────────────────────────────────── */
+async function loadPublicProfile() {
+  document.getElementById('edit-panel').style.display = 'none';
+  document.title = `${viewUsername}'s Profile — GameZone`;
+  document.getElementById('profile-view').classList.remove('hidden');
+  document.getElementById('not-logged-view').classList.add('hidden');
 
-function showNav(user) {
-  const navAuth   = document.getElementById('nav-auth');
-  const navUser   = document.getElementById('nav-user');
-  const navName   = document.getElementById('nav-username');
-  const navAvatar = document.getElementById('nav-avatar');
-  if (navAuth)   navAuth.classList.add('hidden');
-  if (navUser)   navUser.classList.remove('hidden');
-  if (navName)   navName.textContent = user.username;
-  if (navAvatar && user.avatar_url) navAvatar.src = user.avatar_url;
-}
-
-async function loadProfile() {
   try {
     const [profRes, histRes] = await Promise.all([
-      fetch('/api/users/profile', { credentials: 'include' }),
-      fetch('/api/users/history', { credentials: 'include' }),
+      fetch(`/api/users/public/${encodeURIComponent(viewUsername)}`),
+      fetch(`/api/users/public/${encodeURIComponent(viewUsername)}/history`),
     ]);
+    if (!profRes.ok) {
+      document.getElementById('profile-view').innerHTML =
+        '<div class="empty-state" style="padding:80px 24px;text-align:center;font-size:1.1rem">User not found.</div>';
+      return;
+    }
     const profData = await profRes.json();
     const histData = await histRes.json();
 
-    fillProfile(profData);
-    fillHistory(histData.sessions || []);
+    // Show "Viewing X's profile" badge
+    const nameEl = document.getElementById('profile-name');
+    nameEl.innerHTML = `<span class="public-badge">Public Profile</span><br>${escHtml(profData.user.username)}`;
+
+    fillProfile(profData, false);
+    fillHistory(histData.sessions || [], false);
+  } catch {
+    document.getElementById('history-list').innerHTML = '<div class="empty-state">Failed to load.</div>';
+  }
+}
+
+/* ── Own profile ────────────────────────────────────────── */
+async function loadOwnProfile() {
+  try {
+    const [profRes, histRes] = await Promise.all([
+      fetch('/api/users/profile',  { credentials: 'include' }),
+      fetch('/api/users/history',  { credentials: 'include' }),
+    ]);
+    const profData = await profRes.json();
+    const histData = await histRes.json();
+    fillProfile(profData, true);
+    fillHistory(histData.sessions || [], true);
   } catch {
     document.getElementById('history-list').innerHTML = '<div class="empty-state">Failed to load data.</div>';
   }
 }
 
-function fillProfile(data) {
-  const u = data.user || profileUser;
+/* ── Fill profile sidebar ───────────────────────────────── */
+function fillProfile(data, isOwn) {
+  const u = data.user  || {};
   const s = data.stats || {};
 
-  // Avatar
   const avatarEl = document.getElementById('profile-avatar-el');
   if (u.avatar_url) {
-    avatarEl.innerHTML = `<img src="${u.avatar_url}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;"/>`;
+    avatarEl.innerHTML = `<img src="${escHtml(u.avatar_url)}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;"/>`;
   } else {
     avatarEl.textContent = (u.username || '?')[0].toUpperCase();
   }
 
-  document.getElementById('profile-name').textContent  = u.username || '—';
-  document.getElementById('profile-email').textContent = u.email || '';
+  if (isOwn) document.getElementById('profile-name').textContent = u.username || '—';
+  document.getElementById('profile-email').textContent = isOwn ? (u.email || '') : '';
   if (u.created_at) {
     const d = new Date(u.created_at);
-    document.getElementById('profile-since').textContent = 'Member since ' + d.toLocaleDateString('en-GB', { year:'numeric', month:'short' });
+    document.getElementById('profile-since').textContent =
+      'Member since ' + d.toLocaleDateString('en-GB', { year:'numeric', month:'short' });
   }
 
   document.getElementById('s-games').textContent = s.total_games ?? '0';
-  document.getElementById('s-wins').textContent  = s.wins ?? '0';
-  document.getElementById('s-best').textContent  = s.high_score ? Number(s.high_score).toLocaleString() : '—';
-  document.getElementById('s-avg').textContent   = s.avg_score  ? Math.round(s.avg_score) : '—';
+  document.getElementById('s-wins').textContent  = s.wins        ?? '0';
+  document.getElementById('s-best').textContent  = s.high_score  ? Number(s.high_score).toLocaleString() : '—';
+  document.getElementById('s-avg').textContent   = s.avg_score   ? Math.round(s.avg_score) : '—';
+  document.getElementById('s-wpm').textContent   = s.best_wpm    ? s.best_wpm + ' WPM' : '—';
 
-  // Pre-fill edit form
-  document.getElementById('edit-username').value = u.username || '';
-  if (u.age) document.getElementById('edit-age').value = u.age;
+  if (isOwn) {
+    document.getElementById('edit-username').value = u.username || '';
+    if (u.age) document.getElementById('edit-age').value = u.age;
+  }
 }
 
-function fillHistory(sessions) {
+/* ── Fill game history ──────────────────────────────────── */
+function fillHistory(sessions, isOwn) {
   const list = document.getElementById('history-list');
   if (!sessions.length) {
-    list.innerHTML = '<div class="empty-state">No games played yet. <a href="/" style="color:var(--primary-light)">Play now →</a></div>';
+    list.innerHTML = isOwn
+      ? '<div class="empty-state">No games played yet. <a href="/" style="color:var(--primary-light)">Play now →</a></div>'
+      : '<div class="empty-state">No games played yet.</div>';
     return;
   }
   list.innerHTML = sessions.map(s => {
-    const d = new Date(s.played_at);
-    const dateStr = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
+    const d          = new Date(s.played_at);
+    const dateStr    = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
     const placeClass = s.placement === 1 ? 'place-1' : s.placement === 2 ? 'place-2' : s.placement === 3 ? 'place-3' : 'place-n';
     const placeLabel = s.placement ? `#${s.placement}` : '—';
+    const wpmCell    = s.wpm ? `${s.wpm} WPM` : '—';
     return `
       <div class="history-row">
         <div class="history-date">${dateStr}</div>
         <div class="history-game">${escHtml(s.game_type || 'Type Racer')}</div>
         <div class="history-score">${Number(s.score || 0).toLocaleString()}</div>
+        <div class="history-wpm">${wpmCell}</div>
         <div class="history-place"><span class="place-badge ${placeClass}">${placeLabel}</span></div>
         <div class="history-theme">${escHtml(s.theme || '')}</div>
       </div>`;
   }).join('');
 }
 
+/* ── Save own profile ───────────────────────────────────── */
 async function saveProfile(e) {
   e.preventDefault();
-  const body = {
-    username: document.getElementById('edit-username').value.trim(),
-  };
-  const age = document.getElementById('edit-age').value;
+  const body = { username: document.getElementById('edit-username').value.trim() };
+  const age  = document.getElementById('edit-age').value;
   if (age) body.age = parseInt(age, 10);
-
   try {
     const res = await fetch('/api/users/profile', {
       method: 'PATCH', credentials: 'include',
@@ -335,7 +372,23 @@ async function saveProfile(e) {
       document.getElementById('profile-name').textContent = body.username;
       document.getElementById('nav-username').textContent = body.username;
     }
-  } catch { /* silent */ }
+  } catch {}
+}
+
+function showNotLogged() {
+  document.getElementById('not-logged-view').classList.remove('hidden');
+  document.getElementById('profile-view').classList.add('hidden');
+  const navAuth = document.getElementById('nav-auth');
+  if (navAuth) navAuth.classList.remove('hidden');
+}
+
+function showNav(user) {
+  document.getElementById('nav-auth')?.classList.add('hidden');
+  document.getElementById('nav-user')?.classList.remove('hidden');
+  const navName = document.getElementById('nav-username');
+  const navAv   = document.getElementById('nav-avatar');
+  if (navName) navName.textContent = user.username;
+  if (navAv && user.avatar_url) navAv.src = user.avatar_url;
 }
 
 async function doLogout() {

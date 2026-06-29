@@ -34,6 +34,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 /* ── Page routes ─────────────────────────────────────────── */
 app.get('/profile',     (_req, res) => res.sendFile(path.join(__dirname, '../public/profile.html')));
 app.get('/leaderboard', (_req, res) => res.sendFile(path.join(__dirname, '../public/leaderboard.html')));
+app.get('/u/:username', (_req, res) => res.sendFile(path.join(__dirname, '../public/profile.html')));
 
 /* ── API routes ───────────────────────────────────────────── */
 app.use('/api/auth',        authRouter);
@@ -103,10 +104,10 @@ io.on('connection', socket => {
     }, 3900);
   });
 
-  socket.on('word-correct', ({ wordIndex, score }) => {
+  socket.on('word-correct', ({ wordIndex, score, wpm }) => {
     const code = playerRooms.get(socket.id);
     if (!code) return;
-    const result = gm.recordProgress(code, socket.id, wordIndex, score);
+    const result = gm.recordProgress(code, socket.id, wordIndex, score, wpm);
     if (!result) return;
     const { room, finished, allDone } = result;
     io.to(code).emit('progress-update', {

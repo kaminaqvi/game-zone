@@ -23,11 +23,15 @@ const TABLES = [
     score         INT DEFAULT 0,
     words_correct INT DEFAULT 0,
     words_total   INT DEFAULT 0,
+    wpm           INT DEFAULT 0,
     placement     INT DEFAULT 1,
     players_count INT DEFAULT 1,
     played_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // Migration: add wpm column to existing tables that predate this field
+  `ALTER TABLE game_sessions ADD COLUMN IF NOT EXISTS wpm INT DEFAULT 0`,
 ];
 
 async function initDB() {

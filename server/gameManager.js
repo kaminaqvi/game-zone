@@ -23,7 +23,7 @@ function createRoom(hostId, hostName) {
   rooms.set(code, {
     code,
     host: hostId,
-    players: [{ id: hostId, name: hostName, progress: 0, place: 0, charIndex: 0, score: 0 }],
+    players: [{ id: hostId, name: hostName, progress: 0, place: 0, charIndex: 0, score: 0, wpm: 0 }],
     state: 'waiting',
     theme: 'dinosaurs',
     difficulty: 'easy',
@@ -43,7 +43,7 @@ function addPlayer(code, playerId, playerName) {
   if (!room || room.state !== 'waiting') return null;
   if (room.players.find(p => p.id === playerId)) return room;
   const charIndex = room.players.length % 4;
-  room.players.push({ id: playerId, name: playerName, progress: 0, place: 0, charIndex, score: 0 });
+  room.players.push({ id: playerId, name: playerName, progress: 0, place: 0, charIndex, score: 0, wpm: 0 });
   return room;
 }
 
@@ -80,7 +80,7 @@ function startGame(code) {
   return room;
 }
 
-function recordProgress(code, playerId, wordIndex, score) {
+function recordProgress(code, playerId, wordIndex, score, wpm) {
   const room = rooms.get(code);
   if (!room || room.state !== 'racing') return null;
   const player = room.players.find(p => p.id === playerId);
@@ -88,6 +88,7 @@ function recordProgress(code, playerId, wordIndex, score) {
 
   player.progress = Math.round(((wordIndex + 1) / room.words.length) * 100);
   if (score !== undefined) player.score = score;
+  if (wpm   !== undefined) player.wpm   = wpm;
 
   const finished = wordIndex + 1 >= room.words.length;
   if (finished && player.place === 0) {

@@ -44,15 +44,47 @@ router.get('/history', requireAuth, async (req, res) => {
   res.json({ sessions: rows });
 });
 
+/* ── Public profile (anyone can view) ────────────────────── */
+router.get('/public/:username', async (req, res) => {
+  const pool = await getPool();
+  if (!pool) return res.status(503).json({ error: 'DB unavailable' });
+  const [users] = await pool.query(
+    'SELECT id, username, avatar_url, created_at FROM users WHERE username = ?',
+    [req.params.username]
+  );
+  if (!users.length) return res.status(404).json({ error: 'User not found' });
+  const u = users[0];
+  const [stats] = await pool.query(`
+    SELECT COUNT(*) total_games, COALESCE(MAX(score),0) high_score,
+           ROUND(COALESCE(AVG(score),0)) avg_score,
+           SUM(placement=1) wins, COALESCE(MAX(wpm),0) best_wpm
+    FROM game_sessions WHERE user_id=?`, [u.id]);
+  res.json({ user: u, stats: stats[0] });
+});
+
+router.get('/public/:username/history', async (req, res) => {
+  const pool = await getPool();
+  if (!pool) return res.json({ sessions: [] });
+  const [users] = await pool.query('SELECT id FROM users WHERE username = ?', [req.params.username]);
+  if (!users.length) return res.json({ sessions: [] });
+  const limit = Math.min(parseInt(req.query.limit || '20'), 50);
+  const [rows] = await pool.query(`
+    SELECT game_type, theme, difficulty, score, wpm, words_correct, words_total, placement, players_count, played_at
+    FROM game_sessions WHERE user_id=? ORDER BY played_at DESC LIMIT ?`,
+    [users[0].id, limit]
+  );
+  res.json({ sessions: rows });
+});
+
 /* ── Save game result (called by client after game over) ──── */
 router.post('/game-result', requireAuth, express.json(), async (req, res) => {
   const pool = await getPool();
   if (!pool) return res.status(503).json({ error: 'DB unavailable' });
-  const { game_type='type-racer', theme, difficulty, score=0, words_correct=0, words_total=0, placement=1, players_count=1 } = req.body;
+  const { game_type='type-racer', theme, difficulty, score=0, words_correct=0, words_total=0, wpm=0, placement=1, players_count=1 } = req.body;
   await pool.query(
-    `INSERT INTO game_sessions (user_id,game_type,theme,difficulty,score,words_correct,words_total,placement,players_count)
-     VALUES (?,?,?,?,?,?,?,?,?)`,
-    [req.user.id, game_type, theme||null, difficulty||null, score, words_correct, words_total, placement, players_count]
+    `INSERT INTO game_sessions (user_id,game_type,theme,difficulty,score,words_correct,words_total,wpm,placement,players_count)
+     VALUES (?,?,?,?,?,?,?,?,?,?)`,
+    [req.user.id, game_type, theme||null, difficulty||null, score, words_correct, words_total, wpm||0, placement, players_count]
   );
   res.json({ ok: true });
 });

@@ -36,13 +36,13 @@
       border-radius: var(--radius); overflow: hidden;
     }
     .lb-table-header {
-      display: grid; grid-template-columns: 52px 1fr 100px 80px 80px;
+      display: grid; grid-template-columns: 52px 1fr 100px 80px 70px 70px;
       padding: 12px 20px; border-bottom: 1px solid var(--border);
       font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.5px; color: var(--text-dim);
     }
     .lb-table-row {
-      display: grid; grid-template-columns: 52px 1fr 100px 80px 80px;
+      display: grid; grid-template-columns: 52px 1fr 100px 80px 70px 70px;
       align-items: center; gap: 10px;
       padding: 14px 20px; border-bottom: 1px solid var(--border);
       transition: background 0.12s;
@@ -66,10 +66,12 @@
       background: var(--primary); flex-shrink: 0; font-size: 1rem;
       display: flex; align-items: center; justify-content: center; font-weight: 700;
     }
-    .lb-uname { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lb-uname { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: none; color: inherit; }
+    .lb-uname:hover { color: var(--primary-light); text-decoration: underline; }
     .lb-uname.me { color: var(--primary-light); }
 
     .lb-score-cell { font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--accent); text-align: right; }
+    .lb-wpm-cell   { text-align: right; font-size: 0.88rem; font-weight: 700; color: #A78BFA; }
     .lb-wins-cell  { text-align: right; font-size: 0.88rem; color: var(--text-muted); }
     .lb-games-cell { text-align: right; font-size: 0.82rem; color: var(--text-dim); }
 
@@ -139,6 +141,7 @@
       <div style="text-align:center">#</div>
       <div>Player</div>
       <div style="text-align:right">Best Score</div>
+      <div style="text-align:right">Best WPM</div>
       <div style="text-align:right">Wins</div>
       <div style="text-align:right">Games</div>
     </div>
@@ -208,8 +211,9 @@ async function loadLeaderboard() {
       return `
         <div class="lb-table-row${r <= 3 ? ' top-3' : ''}">
           <div class="lb-rank-cell ${rankClass(r)}">${rankIcon(r)}</div>
-          <div class="lb-player-cell">${avatar}<span class="lb-uname${isMe?' me':''}">${escHtml(p.username)}${isMe?' (you)':''}</span></div>
+          <div class="lb-player-cell">${avatar}<a href="/u/${encodeURIComponent(p.username)}" class="lb-uname${isMe?' me':''}">${escHtml(p.username)}${isMe?' (you)':''}</a></div>
           <div class="lb-score-cell">${Number(p.high_score).toLocaleString()}</div>
+          <div class="lb-wpm-cell">${p.best_wpm ? p.best_wpm + ' WPM' : '—'}</div>
           <div class="lb-wins-cell">${p.wins}</div>
           <div class="lb-games-cell">${p.total_games}</div>
         </div>`;
@@ -221,7 +225,7 @@ async function loadLeaderboard() {
       const banner = document.getElementById('my-rank-banner');
       const bannerText = document.getElementById('my-rank-text');
       if (me) {
-        bannerText.textContent = `You are ranked #${me.rank} with a best score of ${Number(me.high_score).toLocaleString()}`;
+        bannerText.textContent = `You are ranked #${me.rank} · Best score: ${Number(me.high_score).toLocaleString()}${me.best_wpm ? ' · Best WPM: ' + me.best_wpm : ''}`;
         banner.classList.remove('hidden');
       }
     }

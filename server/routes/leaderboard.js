@@ -19,6 +19,7 @@ router.get('/', async (req, res) => {
         ROW_NUMBER() OVER (ORDER BY MAX(gs.score) DESC) AS rank,
         u.id, u.username, u.avatar_url,
         MAX(gs.score)                                   AS high_score,
+        MAX(gs.wpm)                                     AS best_wpm,
         COUNT(*)                                        AS total_games,
         SUM(gs.placement = 1)                           AS wins,
         ROUND(AVG(gs.score))                            AS avg_score

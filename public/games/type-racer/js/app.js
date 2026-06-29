@@ -264,6 +264,7 @@ const state = {
   myCharIndex: 0, gameActive: false,
   score: 0, lastWordTime: 0,
   charIndex: 0, charResults: [],
+  gameStartTime: 0, totalCharsTyped: 0, wpm: 0,
 };
 const playerFloors = {};
 
@@ -622,6 +623,7 @@ btnStart.addEventListener('click', () => { pulseEl(btnStart); socket.emit('start
 const jumpArenaEl      = document.getElementById('jump-arena');
 const wordCounterEl    = document.getElementById('word-counter');
 const scoreDisplayEl   = document.getElementById('score-display');
+const wpmDisplayEl     = document.getElementById('wpm-display');
 let idleTypingTimer = null;
 const countdownOverlay = document.getElementById('countdown-overlay');
 const countdownNumber  = document.getElementById('countdown-number');
@@ -635,6 +637,10 @@ function initGame() {
   state.charResults      = [];
   state.score            = 0;
   state.lastWordTime     = 0;
+  state.gameStartTime    = 0;
+  state.totalCharsTyped  = 0;
+  state.wpm              = 0;
+  if (wpmDisplayEl) wpmDisplayEl.textContent = '— WPM';
   finishedOverlay.classList.add('hidden');
   countdownOverlay.classList.add('hidden');
 
@@ -1091,13 +1097,29 @@ function enableTyping() {
     countdownOverlay.classList.add('hidden');
     gsap.set(countdownOverlay, { opacity:1 });
   }});
-  state.gameActive   = true;
-  state.lastWordTime = Date.now();
-  state.charIndex    = 0;
-  state.charResults  = [];
+  state.gameActive      = true;
+  state.lastWordTime    = Date.now();
+  state.gameStartTime   = Date.now();
+  state.totalCharsTyped = 0;
+  state.wpm             = 0;
+  state.charIndex       = 0;
+  state.charResults     = [];
+  if (wpmDisplayEl) wpmDisplayEl.textContent = '0 WPM';
   updatePlatWord();
   // Start idle animation on all characters
   Object.values(charAnimators).forEach(a => a.set('idle'));
+}
+
+function updateWpmDisplay() {
+  if (!state.gameStartTime) return;
+  const elapsed = (Date.now() - state.gameStartTime) / 60000;
+  if (elapsed < 0.02) return; // skip first ~1s to avoid huge spike
+  state.wpm = Math.round((state.totalCharsTyped / 5) / elapsed);
+  if (wpmDisplayEl) {
+    wpmDisplayEl.textContent = `${state.wpm} WPM`;
+    // Color hint: green = fast, yellow = mid, lavender = slow
+    wpmDisplayEl.style.color = state.wpm >= 40 ? '#4ade80' : state.wpm >= 20 ? '#FCD34D' : '#A78BFA';
+  }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1154,6 +1176,8 @@ document.addEventListener('keydown', e => {
   // Correct key — record and advance
   state.charResults[state.charIndex] = { typed: e.key, correct: true };
   state.charIndex++;
+  state.totalCharsTyped++;
+  updateWpmDisplay();
 
   // Walk animation on every keystroke
   const anim = charAnimators[state.playerId];
@@ -1205,7 +1229,7 @@ function handleCorrect() {
   }
 
   updateProgressBar(state.playerId, state.currentWordIndex);
-  socket.emit('word-correct', { wordIndex: done, score: state.score });
+  socket.emit('word-correct', { wordIndex: done, score: state.score, wpm: state.wpm });
 
   if (state.currentWordIndex < state.words.length) {
     markTargetPlatform(state.currentWordIndex);
@@ -1249,7 +1273,7 @@ function showFinishedMessage(place) {
   const label  = labels[place] || `#${place} Place!`;
   finishedMsgEl.innerHTML = `
     <div class="finished-msg">${label}</div>
-    <div class="finished-sub">Score: ${state.score.toLocaleString()} — Waiting…</div>`;
+    <div class="finished-sub">⭐ ${state.score.toLocaleString()} · ${state.wpm} WPM — Waiting for others…</div>`;
   finishedOverlay.classList.remove('hidden');
   gsap.fromTo(finishedOverlay, { opacity:0, scale:0.8 }, { opacity:1, scale:1, duration:0.5, ease:'back.out(1.7)' });
   gameConfetti.launch(3000);
@@ -1287,6 +1311,7 @@ function showResults(results) {
               score:         state.score,
               words_correct: state.words ? Math.round(myResult.progress / 100 * state.words.length) : 0,
               words_total:   state.words ? state.words.length : 0,
+              wpm:           state.wpm,
               placement:     myResult.place,
               players_count: results.length,
             }),
@@ -1333,7 +1358,8 @@ function showResults(results) {
       <span class="result-place">${placeLabel(p.place)}</span>
       <span>${char}</span>
       <span class="result-name">${p.name}${p.id===state.playerId?' (you)':''}</span>
-      <span class="result-score">⭐ ${(p.score||0).toLocaleString()}</span>`;
+      <span class="result-score">⭐ ${(p.score||0).toLocaleString()}</span>
+      <span class="result-wpm">${p.wpm ? p.wpm+' WPM' : '—'}</span>`;
     listEl.appendChild(li);
     gsap.from(li, { x:-40, opacity:0, duration:0.4, delay:0.6+i*0.08, ease:'power2.out' });
   });
