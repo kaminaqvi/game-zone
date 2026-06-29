@@ -29,7 +29,7 @@ if (process.env.GOOGLE_CLIENT_ID) {
             return done(null, byEmail[0]);
           }
         }
-        const username = (profile.displayName || 'Player').replace(/\s+/g, '').slice(0, 40) || `Player${Date.now()}`;
+        const username = (profile.displayName || 'Player').trim().slice(0, 40) || `Player${Date.now()}`;
         const [r] = await pool.query(
           'INSERT INTO users (google_id, username, email, avatar_url) VALUES (?,?,?,?)',
           [profile.id, username, email, avatar]
