@@ -96,12 +96,17 @@ io.on('connection', socket => {
       words: started.words, theme: started.theme,
       difficulty: started.difficulty, players: started.players,
     });
+    // All players enable typing at the same server-controlled moment
+    setTimeout(() => {
+      const room = gm.getRoom(code);
+      if (room && room.state === 'racing') io.to(code).emit('game-start');
+    }, 3900);
   });
 
-  socket.on('word-correct', ({ wordIndex }) => {
+  socket.on('word-correct', ({ wordIndex, score }) => {
     const code = playerRooms.get(socket.id);
     if (!code) return;
-    const result = gm.recordProgress(code, socket.id, wordIndex);
+    const result = gm.recordProgress(code, socket.id, wordIndex, score);
     if (!result) return;
     const { room, finished, allDone } = result;
     io.to(code).emit('progress-update', {

@@ -409,39 +409,28 @@ input[type="text"]:focus { border-color: var(--yellow); }
 }
 .word-counter { font-size: 0.78rem; color: var(--text-dim); }
 
-/* HUD progress sidebar — fixed right, full height */
-.hud-progress-bars {
-  position: fixed; right: 0; top: 0; bottom: 0; z-index: 20;
-  display: flex; flex-direction: row; align-items: stretch;
-  gap: 6px;
-  padding: 12px 8px 12px 10px;
-  background: rgba(0,0,0,0.45); backdrop-filter: blur(10px);
-  border-left: 1px solid rgba(255,255,255,0.1);
+/* Old fixed right sidebar — hidden, bars now live inside each column */
+.hud-progress-bars { display: none; }
+
+/* Per-column progress bar — left edge, full height */
+.col-prog-bar {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 10px; z-index: 5;
+  background: rgba(255,255,255,0.07);
+  border-right: 1px solid rgba(255,255,255,0.1);
+  overflow: hidden;
 }
-.hud-prog-col {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  font-size: 0.60rem; color: var(--text-dim); white-space: nowrap;
-  justify-content: flex-end;
-}
-.hud-prog-col.is-you .hud-bar-track { border-color: var(--yellow); box-shadow: 0 0 8px rgba(252,211,77,0.4); }
-.hud-prog-col.is-you .hud-bar-name { color: var(--yellow); font-weight: bold; }
-.hud-bar-name { max-width: 40px; overflow: hidden; text-overflow: ellipsis; text-align: center; }
-.hud-bar-track {
-  width: 20px; flex: 1;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.2);
-  position: relative; overflow: hidden;
+.col-prog-bar.is-you {
+  border-right-color: rgba(252,211,77,0.4);
+  box-shadow: inset -1px 0 8px rgba(252,211,77,0.15);
 }
 .hud-bar-fill {
   position: absolute; bottom: 0; left: 0; right: 0;
   background: linear-gradient(180deg, #4ade80, #16a34a);
-  border-radius: 10px; transition: height 0.4s ease-out;
+  transition: height 0.4s ease-out;
 }
-.hud-bar-char {
-  position: absolute; left: 50%; transform: translateX(-50%);
-  font-size: 1rem; transition: bottom 0.4s ease-out;
-  filter: drop-shadow(0 1px 4px rgba(0,0,0,0.7));
-  line-height: 1;
+.col-prog-bar.is-you .hud-bar-fill {
+  background: linear-gradient(180deg, #FCD34D, #F59E0B);
 }
 
 /* ─── Jump Arena ───────────────────────────────────────────── */
@@ -453,7 +442,7 @@ input[type="text"]:focus { border-color: var(--yellow); }
 }
 
 .player-column {
-  flex: 1; min-width: 0;
+  flex: 1; min-width: 0; position: relative;
   display: flex; flex-direction: column;
   align-items: center; gap: 4px;
 }
@@ -527,6 +516,8 @@ input[type="text"]:focus { border-color: var(--yellow); }
 .ch-cur   { color: #fef08a; text-decoration: underline; text-underline-offset: 3px; animation: cur-pulse 0.7s ease-in-out infinite alternate; }
 .ch-rest  { color: rgba(255,255,255,0.85); }
 @keyframes cur-pulse { from { opacity: 1; } to { opacity: 0.45; } }
+.ch-shake { animation: ch-shake 0.25s ease; color: #ef4444 !important; }
+@keyframes ch-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
 
 /* Target platform — golden glow */
 .platform.target-plat { animation: targetPulse 1.3s ease-in-out infinite; }

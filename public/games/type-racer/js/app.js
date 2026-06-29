@@ -648,7 +648,6 @@ function initGame() {
   state.players.forEach(p => { playerFloors[p.id] = 0; });
 
   buildJumpArena();
-  buildProgressBars();
   markTargetPlatform(0);
   updateWordCounter();
   updateScoreDisplay();
@@ -774,6 +773,17 @@ function buildJumpArena() {
     col.appendChild(finDiv);
     col.appendChild(hdr);
     col.appendChild(arena);
+
+    // Progress bar — left edge of this column, full height
+    const cpBar  = document.createElement('div');
+    cpBar.className = 'col-prog-bar' + (isMe ? ' is-you' : '');
+    const cpFill = document.createElement('div');
+    cpFill.className = 'hud-bar-fill';
+    cpFill.id = `progfill-${p.id}`;
+    cpFill.style.height = '0%';
+    cpBar.appendChild(cpFill);
+    col.appendChild(cpBar);
+
     jumpArenaEl.appendChild(col);
 
     charAnimators[p.id] = new CharacterAnimator(`charinner-${p.id}`);
@@ -1071,7 +1081,7 @@ function startCountdown() {
     );
     i++;
     if (i < steps.length) setTimeout(tick, val==='GO!' ? 650 : 900);
-    else setTimeout(enableTyping, 200);
+    // enableTyping is triggered by server 'game-start' event for sync
   }
   tick();
 }
@@ -1091,6 +1101,26 @@ function enableTyping() {
 }
 
 /* ══════════════════════════════════════════════════════════
+   BEEP — wrong key audio feedback
+   ══════════════════════════════════════════════════════════ */
+let _audioCtx = null;
+function playBeep() {
+  try {
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = _audioCtx.createOscillator();
+    const gain = _audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(_audioCtx.destination);
+    osc.type = 'square';
+    osc.frequency.value = 180;
+    gain.gain.setValueAtTime(0.08, _audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, _audioCtx.currentTime + 0.12);
+    osc.start(_audioCtx.currentTime);
+    osc.stop(_audioCtx.currentTime + 0.12);
+  } catch {}
+}
+
+/* ══════════════════════════════════════════════════════════
    TYPING  —  direct keydown capture, no textbox
    ══════════════════════════════════════════════════════════ */
 
@@ -1106,8 +1136,23 @@ document.addEventListener('keydown', e => {
   const expected = word[state.charIndex].toLowerCase();
   const isCorrect = e.key.toLowerCase() === expected;
 
-  // Record result for this character position
-  state.charResults[state.charIndex] = { typed: e.key, correct: isCorrect };
+  if (!isCorrect) {
+    playBeep();
+    // Flash current char red
+    const f = state.currentWordIndex + 1;
+    const platEl = document.getElementById(`platword-${f}`);
+    if (platEl) {
+      const curEl = platEl.querySelector('.ch-cur');
+      if (curEl) {
+        curEl.classList.add('ch-shake');
+        setTimeout(() => curEl.classList.remove('ch-shake'), 280);
+      }
+    }
+    return;
+  }
+
+  // Correct key — record and advance
+  state.charResults[state.charIndex] = { typed: e.key, correct: true };
   state.charIndex++;
 
   // Walk animation on every keystroke
@@ -1160,7 +1205,7 @@ function handleCorrect() {
   }
 
   updateProgressBar(state.playerId, state.currentWordIndex);
-  socket.emit('word-correct', { wordIndex: done });
+  socket.emit('word-correct', { wordIndex: done, score: state.score });
 
   if (state.currentWordIndex < state.words.length) {
     markTargetPlatform(state.currentWordIndex);
@@ -1336,6 +1381,7 @@ socket.on('game-starting', ({ words, theme, difficulty, players }) => {
   showScreen('screen-game');
   initGame();
 });
+socket.on('game-start',      ()            => enableTyping());
 socket.on('progress-update', ({ players }) => handleProgressUpdate(players));
 socket.on('you-finished',    ({ place })   => showFinishedMessage(place));
 socket.on('game-over',       ({ results }) => setTimeout(() => showResults(results), 1800));
