@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Type Racer! 🏎️ — Game Zone</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;800;900&family=Boogaloo&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/games/type-racer/css/style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════ LANDING ══════════════════════════════ -->
+<div id="screen-landing" class="screen active">
+  <div class="game-title">
+    🏎️ Type Racer!
+    <span class="subtitle">Race your friends with typing!</span>
+  </div>
+
+  <div class="card">
+    <h2>Your Name</h2>
+    <input id="player-name" type="text" placeholder="Enter your name…" maxlength="16" autocomplete="off" />
+    <div class="profile-bar" id="profile-bar" style="display:none">
+      <span id="profile-wins">🏆 0 wins</span>
+      <span id="profile-races">🏁 0 races</span>
+      <span id="profile-high">⭐ Best: 0</span>
+      <button class="btn btn-ghost btn-sm" id="btn-profile">📊 History</button>
+    </div>
+  </div>
+
+  <div class="landing-actions">
+    <div class="card">
+      <h2>Create a Room</h2>
+      <button id="btn-create" class="btn btn-primary full-width">🎮 Create Room</button>
+    </div>
+    <div class="card">
+      <h2>Join a Room</h2>
+      <div class="input-group">
+        <input id="room-code-input" type="text" placeholder="Room code (e.g. KXPT)" maxlength="4"
+               autocomplete="off" autocorrect="off" autocapitalize="characters"
+               style="text-transform:uppercase;letter-spacing:6px;text-align:center;font-size:1.5rem" />
+        <button id="btn-join" class="btn btn-secondary">🚪 Join</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-rooms">
+    <h2>Open Rooms <button class="btn btn-ghost btn-sm" id="btn-refresh-rooms">↻</button></h2>
+    <div id="room-list" class="room-list"><p class="dim">No open rooms yet.</p></div>
+  </div>
+
+  <div id="landing-error" class="error-msg"></div>
+  <a href="/" class="back-link">← Back to Game Zone</a>
+</div>
+
+<!-- Profile history modal -->
+<div id="modal-profile" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h2>📊 Your Race History</h2>
+    <div id="profile-history-list" class="history-list"></div>
+    <div class="history-stats" id="history-stats"></div>
+    <button class="btn btn-ghost full-width mt-16" id="btn-close-profile">Close</button>
+  </div>
+</div>
+
+<!-- ═══════════════════ LOBBY ════════════════════════════════ -->
+<div id="screen-lobby" class="screen">
+  <div class="lobby-header"><h1>Waiting Room</h1></div>
+  <div class="room-code-box">
+    <div class="label">Room Code — share with friends!</div>
+    <div class="code" id="lobby-code">----</div>
+  </div>
+  <div class="lobby-grid">
+    <div class="player-list-card">
+      <h3>Players 👥</h3>
+      <div id="player-list"></div>
+    </div>
+    <div id="host-controls" class="host-controls hidden">
+      <h3>Pick Theme 🎨</h3>
+      <div id="theme-grid" class="theme-grid"></div>
+      <h3 class="mt-8">Difficulty ⚡</h3>
+      <div id="difficulty-row" class="difficulty-row"></div>
+      <button id="btn-start" class="btn btn-success btn-large full-width mt-16">🏁 Start Race!</button>
+    </div>
+    <div id="waiting-msg" class="waiting-msg hidden">⏳ Waiting for the host to start…</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ GAME ═════════════════════════════════ -->
+<div id="screen-game" class="screen">
+
+  <!-- Nature background layers -->
+  <div class="game-scene-bg" id="game-scene-bg">
+    <div class="bg-sky" id="bg-sky"></div>
+    <div class="bg-clouds" id="bg-clouds"></div>
+    <div class="bg-mountains"></div>
+    <div class="bg-trees"></div>
+    <div class="bg-ground"></div>
+  </div>
+
+  <!-- Cutscene overlay -->
+  <div id="cutscene-overlay" class="cutscene-overlay hidden">
+    <div class="cutscene-card">
+      <div class="panel-scene" id="panel-scene">
+        <div class="panel-scene-emojis" id="panel-scene-emojis"></div>
+      </div>
+      <div class="panel-content">
+        <div class="panel-badge" id="panel-badge">Chapter 1</div>
+        <h2 class="panel-title" id="panel-title"></h2>
+        <p class="panel-text" id="panel-text"></p>
+        <div class="panel-speech">
+          <span class="speech-char" id="speech-char"></span>
+          <div class="speech-bubble" id="speech-bubble"></div>
+        </div>
+      </div>
+      <div class="cutscene-nav">
+        <div class="cutscene-dots" id="cutscene-dots"></div>
+        <div class="cutscene-btns">
+          <button class="btn btn-ghost" id="btn-skip-story">Skip</button>
+          <button class="btn btn-primary" id="btn-next-panel">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Countdown -->
+  <div id="countdown-overlay" class="hidden">
+    <div id="countdown-number" class="countdown-number">3</div>
+  </div>
+
+  <!-- Finished overlay -->
+  <div id="finished-overlay" class="hidden">
+    <div id="finished-msg"></div>
+  </div>
+
+  <!-- Confetti canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Game layout -->
+  <div class="game-layout">
+
+    <!-- HUD bar -->
+    <div class="game-hud">
+      <div class="hud-left">
+        <span id="score-display" class="score-display">⭐ 0</span>
+        <span id="word-counter" class="word-counter">Word 1 of 10</span>
+      </div>
+    </div>
+
+    <!-- Jump arena -->
+    <div id="jump-arena" class="jump-arena"></div>
+
+  </div>
+  <!-- Progress sidebar — fixed right, full height -->
+  <div class="hud-progress-bars" id="hud-progress-bars"></div>
+</div>
+
+<!-- ═══════════════════ RESULTS ══════════════════════════════ -->
+<div id="screen-results" class="screen">
+  <canvas id="confetti-canvas-results"></canvas>
+  <div class="results-title">🏆 Race Complete!</div>
+  <div id="podium" class="podium"></div>
+  <div id="results-list" class="results-list"></div>
+  <div class="results-actions">
+    <button id="btn-play-again" class="btn btn-success btn-large">🔄 Play Again</button>
+    <button id="btn-new-game"   class="btn btn-secondary btn-large">🏠 Game Zone</button>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="/games/type-racer/js/themes.js"></script>
+<script src="/games/type-racer/js/confetti.js"></script>
+<script src="/games/type-racer/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Profile — GameZone</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/hub.css"/>
+  <style>
+    .profile-layout {
+      max-width: 960px; margin: 0 auto;
+      padding: 96px 24px 64px;
+      display: grid; grid-template-columns: 280px 1fr; gap: 28px;
+    }
+    @media (max-width: 720px) { .profile-layout { grid-template-columns: 1fr; } }
+
+    /* Sidebar */
+    .profile-sidebar { display: flex; flex-direction: column; gap: 20px; }
+
+    .profile-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px 22px;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .profile-avatar-wrap { position: relative; }
+    .profile-avatar {
+      width: 88px; height: 88px; border-radius: 50%;
+      object-fit: cover; border: 3px solid var(--primary);
+      background: var(--surface); font-size: 2.2rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .profile-name {
+      font-family: 'Space Grotesk', sans-serif; font-size: 1.25rem;
+      font-weight: 700; text-align: center;
+    }
+    .profile-email { font-size: 0.82rem; color: var(--text-dim); }
+    .profile-since { font-size: 0.78rem; color: var(--text-dim); }
+
+    .stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .stat-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 14px 10px;
+      text-align: center;
+    }
+    .stat-box-num {
+      font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem;
+      font-weight: 700; color: var(--primary-light);
+    }
+    .stat-box-label { font-size: 0.72rem; color: var(--text-dim); margin-top: 2px; }
+
+    /* Main content */
+    .profile-main { display: flex; flex-direction: column; gap: 24px; }
+
+    .panel {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px;
+    }
+    .panel-title {
+      font-family: 'Space Grotesk', sans-serif; font-size: 1rem;
+      font-weight: 700; margin-bottom: 18px; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    /* Edit form */
+    .edit-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 500px) { .edit-form { grid-template-columns: 1fr; } }
+    .edit-form label {
+      display: flex; flex-direction: column; gap: 6px;
+      font-size: 0.85rem; font-weight: 600; color: var(--text-muted);
+    }
+    .edit-form input {
+      padding: 9px 13px; border-radius: 9px; font-size: 0.9rem;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text); font-family: 'Inter', sans-serif; outline: none;
+      transition: border-color 0.2s;
+    }
+    .edit-form input:focus { border-color: var(--primary); }
+    .edit-form-actions { grid-column: 1 / -1; display: flex; gap: 10px; }
+
+    .btn-save {
+      padding: 9px 22px; border-radius: 9px; border: none;
+      background: var(--primary); color: #fff; font-size: 0.9rem;
+      font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-save:hover { background: var(--primary-light); }
+    .save-msg { font-size: 0.85rem; color: var(--success); display: none; }
+
+    /* History table */
+    .history-row {
+      display: grid; grid-template-columns: 90px 1fr 80px 60px 70px;
+      align-items: center; gap: 10px;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+      font-size: 0.88rem;
+    }
+    .history-row:last-child { border-bottom: none; }
+    .history-date { color: var(--text-dim); font-size: 0.78rem; }
+    .history-game { font-weight: 600; }
+    .history-score { font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--accent); }
+    .history-place { text-align: center; }
+    .place-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 50px; font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .place-1 { background: rgba(245,158,11,0.2); color: #F59E0B; }
+    .place-2 { background: rgba(148,163,184,0.2); color: #94A3B8; }
+    .place-3 { background: rgba(205,124,42,0.2); color: #CD7C2A; }
+    .place-n { background: rgba(255,255,255,0.06); color: var(--text-muted); }
+
+    .history-theme { font-size: 0.75rem; color: var(--text-dim); }
+
+    .empty-state {
+      text-align: center; padding: 36px 0; color: var(--text-dim); font-size: 0.9rem;
+    }
+
+    .not-logged {
+      text-align: center; padding: 120px 24px 60px;
+    }
+    .not-logged h2 { font-size: 1.8rem; margin-bottom: 12px; }
+    .not-logged p  { color: var(--text-muted); margin-bottom: 28px; }
+  </style>
+</head>
+<body>
+
+<!-- ── Navbar ─────────────────────────────────────────────── -->
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <span class="nav-logo-icon">⚡</span>
+      <span class="nav-logo-text">GameZone</span>
+    </a>
+    <div class="nav-links">
+      <a href="/#games"      class="nav-link">Games</a>
+      <a href="/leaderboard" class="nav-link">Leaderboard</a>
+      <a href="/profile"     class="nav-link" style="color:var(--text)">Profile</a>
+    </div>
+    <div class="nav-auth hidden" id="nav-auth">
+      <button class="btn-ghost"   onclick="window.location='/'">Log In</button>
+      <button class="btn-primary" onclick="window.location='/'">Sign Up Free</button>
+    </div>
+    <div class="nav-user hidden" id="nav-user">
+      <span class="nav-username" id="nav-username"></span>
+      <img class="nav-avatar" id="nav-avatar" src="" alt="avatar"/>
+      <div class="nav-dropdown">
+        <div class="nav-dropdown-inner">
+          <a href="/profile">My Profile</a>
+          <a href="/leaderboard">Leaderboard</a>
+          <button onclick="doLogout()">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Not-logged state ────────────────────────────────────── -->
+<div id="not-logged-view" class="not-logged hidden">
+  <h2>Sign in to view your profile</h2>
+  <p>Create a free account to track your scores, view history and compete on the leaderboard.</p>
+  <a href="/" class="btn-hero-primary" style="display:inline-block;text-decoration:none">Go to Home →</a>
+</div>
+
+<!-- ── Profile layout ─────────────────────────────────────── -->
+<div class="profile-layout" id="profile-view">
+
+  <!-- Sidebar -->
+  <aside class="profile-sidebar">
+    <div class="profile-card">
+      <div class="profile-avatar-wrap">
+        <div class="profile-avatar" id="profile-avatar-el">?</div>
+      </div>
+      <div class="profile-name" id="profile-name">—</div>
+      <div class="profile-email" id="profile-email"></div>
+      <div class="profile-since" id="profile-since"></div>
+    </div>
+
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-box"><div class="stat-box-num" id="s-games">—</div><div class="stat-box-label">Games Played</div></div>
+      <div class="stat-box"><div class="stat-box-num" id="s-wins">—</div><div class="stat-box-label">Wins</div></div>
+      <div class="stat-box"><div class="stat-box-num" id="s-best">—</div><div class="stat-box-label">Best Score</div></div>
+      <div class="stat-box"><div class="stat-box-num" id="s-avg">—</div><div class="stat-box-label">Avg Score</div></div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="profile-main">
+
+    <!-- Edit profile -->
+    <div class="panel">
+      <div class="panel-title">Edit Profile</div>
+      <form class="edit-form" id="edit-form" onsubmit="saveProfile(event)">
+        <label>Username<input type="text" id="edit-username" maxlength="40" required/></label>
+        <label>Age<input type="number" id="edit-age" min="4" max="99" placeholder="optional"/></label>
+        <div class="edit-form-actions">
+          <button type="submit" class="btn-save">Save Changes</button>
+          <span class="save-msg" id="save-msg">✓ Saved!</span>
+        </div>
+      </form>
+    </div>
+
+    <!-- Game history -->
+    <div class="panel">
+      <div class="panel-title">Recent Games</div>
+      <div id="history-list"><div class="empty-state">Loading…</div></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+
+let profileUser = null;
+
+async function init() {
+  try {
+    const res = await fetch('/api/auth/me', { credentials: 'include' });
+    if (!res.ok) { showNotLogged(); return; }
+    const data = await res.json();
+    if (!data.user) { showNotLogged(); return; }
+    profileUser = data.user;
+    showNav(data.user);
+    loadProfile();
+  } catch {
+    showNotLogged();
+  }
+}
+
+function showNotLogged() {
+  document.getElementById('not-logged-view').classList.remove('hidden');
+  document.getElementById('profile-view').classList.add('hidden');
+  const navAuth = document.getElementById('nav-auth');
+  if (navAuth) navAuth.classList.remove('hidden');
+}
+
+function showNav(user) {
+  const navAuth   = document.getElementById('nav-auth');
+  const navUser   = document.getElementById('nav-user');
+  const navName   = document.getElementById('nav-username');
+  const navAvatar = document.getElementById('nav-avatar');
+  if (navAuth)   navAuth.classList.add('hidden');
+  if (navUser)   navUser.classList.remove('hidden');
+  if (navName)   navName.textContent = user.username;
+  if (navAvatar && user.avatar_url) navAvatar.src = user.avatar_url;
+}
+
+async function loadProfile() {
+  try {
+    const [profRes, histRes] = await Promise.all([
+      fetch('/api/users/profile', { credentials: 'include' }),
+      fetch('/api/users/history', { credentials: 'include' }),
+    ]);
+    const profData = await profRes.json();
+    const histData = await histRes.json();
+
+    fillProfile(profData);
+    fillHistory(histData.sessions || []);
+  } catch {
+    document.getElementById('history-list').innerHTML = '<div class="empty-state">Failed to load data.</div>';
+  }
+}
+
+function fillProfile(data) {
+  const u = data.user || profileUser;
+  const s = data.stats || {};
+
+  // Avatar
+  const avatarEl = document.getElementById('profile-avatar-el');
+  if (u.avatar_url) {
+    avatarEl.innerHTML = `<img src="${u.avatar_url}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;"/>`;
+  } else {
+    avatarEl.textContent = (u.username || '?')[0].toUpperCase();
+  }
+
+  document.getElementById('profile-name').textContent  = u.username || '—';
+  document.getElementById('profile-email').textContent = u.email || '';
+  if (u.created_at) {
+    const d = new Date(u.created_at);
+    document.getElementById('profile-since').textContent = 'Member since ' + d.toLocaleDateString('en-GB', { year:'numeric', month:'short' });
+  }
+
+  document.getElementById('s-games').textContent = s.total_games ?? '0';
+  document.getElementById('s-wins').textContent  = s.wins ?? '0';
+  document.getElementById('s-best').textContent  = s.high_score ? Number(s.high_score).toLocaleString() : '—';
+  document.getElementById('s-avg').textContent   = s.avg_score  ? Math.round(s.avg_score) : '—';
+
+  // Pre-fill edit form
+  document.getElementById('edit-username').value = u.username || '';
+  if (u.age) document.getElementById('edit-age').value = u.age;
+}
+
+function fillHistory(sessions) {
+  const list = document.getElementById('history-list');
+  if (!sessions.length) {
+    list.innerHTML = '<div class="empty-state">No games played yet. <a href="/" style="color:var(--primary-light)">Play now →</a></div>';
+    return;
+  }
+  list.innerHTML = sessions.map(s => {
+    const d = new Date(s.played_at);
+    const dateStr = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
+    const placeClass = s.placement === 1 ? 'place-1' : s.placement === 2 ? 'place-2' : s.placement === 3 ? 'place-3' : 'place-n';
+    const placeLabel = s.placement ? `#${s.placement}` : '—';
+    return `
+      <div class="history-row">
+        <div class="history-date">${dateStr}</div>
+        <div class="history-game">${escHtml(s.game_type || 'Type Racer')}</div>
+        <div class="history-score">${Number(s.score || 0).toLocaleString()}</div>
+        <div class="history-place"><span class="place-badge ${placeClass}">${placeLabel}</span></div>
+        <div class="history-theme">${escHtml(s.theme || '')}</div>
+      </div>`;
+  }).join('');
+}
+
+async function saveProfile(e) {
+  e.preventDefault();
+  const body = {
+    username: document.getElementById('edit-username').value.trim(),
+  };
+  const age = document.getElementById('edit-age').value;
+  if (age) body.age = parseInt(age, 10);
+
+  try {
+    const res = await fetch('/api/users/profile', {
+      method: 'PATCH', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      const msg = document.getElementById('save-msg');
+      msg.style.display = 'inline';
+      setTimeout(() => { msg.style.display = 'none'; }, 2500);
+      document.getElementById('profile-name').textContent = body.username;
+      document.getElementById('nav-username').textContent = body.username;
+    }
+  } catch { /* silent */ }
+}
+
+async function doLogout() {
+  await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+  window.location.href = '/';
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+init();
+</script>
+</body>
+</html>

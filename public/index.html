@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GameZone — Kids Multiplayer Games</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/hub.css"/>
+</head>
+<body>
+
+<!-- ═══ NAVBAR ═══════════════════════════════════════════════ -->
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <span class="nav-logo-icon">⚡</span>
+      <span class="nav-logo-text">GameZone</span>
+    </a>
+    <div class="nav-links">
+      <a href="#games"       class="nav-link">Games</a>
+      <a href="/leaderboard" class="nav-link">Leaderboard</a>
+      <a href="/profile"     class="nav-link">Profile</a>
+    </div>
+    <div class="nav-auth" id="nav-auth">
+      <button class="btn-ghost" onclick="openAuth('login')">Log In</button>
+      <button class="btn-primary" onclick="openAuth('signup')">Sign Up Free</button>
+    </div>
+    <div class="nav-user hidden" id="nav-user">
+      <span class="nav-username" id="nav-username"></span>
+      <img class="nav-avatar" id="nav-avatar" src="" alt="avatar"/>
+      <div class="nav-dropdown">
+        <div class="nav-dropdown-inner">
+          <a href="/profile">My Profile</a>
+          <a href="/leaderboard">Leaderboard</a>
+          <button onclick="logout()">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══ HERO ════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-glow hero-glow-1"></div>
+  <div class="hero-glow hero-glow-2"></div>
+  <div class="hero-content">
+    <div class="hero-badge">🎮 Free · Multiplayer · No ads</div>
+    <h1 class="hero-title">
+      Level Up Your<br/>
+      <span class="gradient-text">Typing Skills</span>
+    </h1>
+    <p class="hero-subtitle">
+      Race your friends in multiplayer typing games built for kids aged 5–12.
+      Improve speed, spelling &amp; focus — while having a blast.
+    </p>
+    <div class="hero-actions">
+      <button class="btn-hero-primary" onclick="document.getElementById('games').scrollIntoView({behavior:'smooth'})">
+        ▶ Play Free Now
+      </button>
+      <button class="btn-hero-ghost" onclick="openAuth('signup')">
+        Create Account
+      </button>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><span class="stat-num" id="stat-players">—</span><span class="stat-label">Players</span></div>
+      <div class="hero-stat-divider"></div>
+      <div class="hero-stat"><span class="stat-num">5</span><span class="stat-label">Games</span></div>
+      <div class="hero-stat-divider"></div>
+      <div class="hero-stat"><span class="stat-num">Free</span><span class="stat-label">Forever</span></div>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="hero-card-stack">
+      <div class="hcard hcard-1">🏎️ Type Racer</div>
+      <div class="hcard hcard-2">🐝 Spelling Bee</div>
+      <div class="hcard hcard-3">🧠 Word Memory</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ GAMES ════════════════════════════════════════════════ -->
+<section class="section" id="games">
+  <div class="section-inner">
+    <div class="section-header">
+      <h2 class="section-title">Choose Your Game</h2>
+      <p class="section-sub">All games are free and work in your browser — no download needed</p>
+    </div>
+    <div class="games-grid" id="games-grid"></div>
+  </div>
+</section>
+
+<!-- ═══ LEADERBOARD PREVIEW ══════════════════════════════════ -->
+<section class="section section-dark" id="leaderboard-preview">
+  <div class="section-inner">
+    <div class="section-header">
+      <h2 class="section-title">🏆 Hall of Fame</h2>
+      <p class="section-sub">Top players this week</p>
+    </div>
+    <div class="lb-preview-wrap">
+      <div class="lb-preview-table" id="lb-preview-rows">
+        <div class="lb-loading">Loading leaderboard…</div>
+      </div>
+      <a href="/leaderboard" class="lb-view-all">View Full Leaderboard →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FEATURES ════════════════════════════════════════════ -->
+<section class="section" id="features">
+  <div class="section-inner">
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Real-time Multiplayer</h3>
+        <p>Race live against friends or players from anywhere. Up to 4 players per room.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Track Progress</h3>
+        <p>Create a free account to save scores, view history and climb the leaderboard.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎨</div>
+        <h3>6 Unique Themes</h3>
+        <p>Dinosaurs, Animals, Cars, Space, Aviation, Roller Coaster — pick your favourite!</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔤</div>
+        <h3>3 Difficulty Levels</h3>
+        <p>Easy (ages 5–7), Medium (ages 8–10), Hard (ages 10–12). Perfect for every learner.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ════════════════════════════════════════════════ -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="nav-logo-icon">⚡</span>
+      <span class="nav-logo-text">GameZone</span>
+    </div>
+    <p class="footer-copy">© 2025 GameZone · Built for kids, loved by families</p>
+    <div class="footer-links">
+      <a href="#games">Games</a>
+      <a href="/leaderboard">Leaderboard</a>
+      <a href="/profile">Profile</a>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══ AUTH MODAL ═══════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="auth-modal" onclick="closeAuthOnOverlay(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeAuth()">✕</button>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login"  onclick="switchTab('login')">Log In</button>
+      <button class="auth-tab"        id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
+    </div>
+
+    <!-- Google button -->
+    <a href="/api/auth/google" class="btn-google" id="google-btn">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Continue with Google
+    </a>
+
+    <div class="auth-divider"><span>or</span></div>
+
+    <!-- Error -->
+    <div class="auth-error hidden" id="auth-error"></div>
+
+    <!-- Login form -->
+    <form class="auth-form" id="form-login" onsubmit="submitLogin(event)">
+      <label>Email<input type="email" name="email" required placeholder="you@example.com"/></label>
+      <label>Password<input type="password" name="password" required placeholder="••••••••"/></label>
+      <button type="submit" class="btn-submit" id="btn-login-submit">Log In</button>
+      <p class="auth-switch">No account? <button type="button" onclick="switchTab('signup')">Sign up free →</button></p>
+    </form>
+
+    <!-- Signup form -->
+    <form class="auth-form hidden" id="form-signup" onsubmit="submitSignup(event)">
+      <label>Username<input type="text" name="username" required placeholder="CoolPlayer123" maxlength="40"/></label>
+      <label>Email<input type="email" name="email" required placeholder="you@example.com"/></label>
+      <label>Password<input type="password" name="password" required placeholder="Min 6 characters"/></label>
+      <label>Age (optional)<input type="number" name="age" min="4" max="18" placeholder="e.g. 9"/></label>
+      <button type="submit" class="btn-submit" id="btn-signup-submit">Create Account</button>
+      <p class="auth-switch">Already have one? <button type="button" onclick="switchTab('login')">Log in →</button></p>
+    </form>
+  </div>
+</div>
+
+<!-- ═══ PAGE TRANSITION ════════════════════════════════════ -->
+<div id="page-transition"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="/js/hub.js"></script>
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Leaderboard — GameZone</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/hub.css"/>
+  <style>
+    .lb-page { max-width: 760px; margin: 0 auto; padding: 96px 24px 64px; }
+
+    .lb-page-header { margin-bottom: 32px; }
+    .lb-page-title { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+
+    /* Filters */
+    .lb-filters {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .filter-label { font-size: 0.85rem; color: var(--text-dim); }
+    .filter-group { display: flex; gap: 4px; }
+    .filter-btn {
+      padding: 6px 14px; border-radius: 50px; font-size: 0.82rem; font-weight: 600;
+      border: 1px solid var(--border); background: transparent; color: var(--text-muted);
+      cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif;
+    }
+    .filter-btn.active {
+      background: var(--primary); border-color: var(--primary); color: #fff;
+    }
+
+    /* Table */
+    .lb-table {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .lb-table-header {
+      display: grid; grid-template-columns: 52px 1fr 100px 80px 80px;
+      padding: 12px 20px; border-bottom: 1px solid var(--border);
+      font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text-dim);
+    }
+    .lb-table-row {
+      display: grid; grid-template-columns: 52px 1fr 100px 80px 80px;
+      align-items: center; gap: 10px;
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+      transition: background 0.12s;
+    }
+    .lb-table-row:last-child { border-bottom: none; }
+    .lb-table-row:hover { background: rgba(255,255,255,0.03); }
+
+    .lb-table-row.top-3 { background: rgba(99,102,241,0.04); }
+
+    .lb-rank-cell {
+      font-family: 'Space Grotesk', sans-serif; font-size: 1rem;
+      font-weight: 800; text-align: center;
+    }
+    .lb-rank-cell.gold   { color: #F59E0B; }
+    .lb-rank-cell.silver { color: #94A3B8; }
+    .lb-rank-cell.bronze { color: #CD7C2A; }
+
+    .lb-player-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .lb-avatar-sm {
+      width: 36px; height: 36px; border-radius: 50%; object-fit: cover;
+      background: var(--primary); flex-shrink: 0; font-size: 1rem;
+      display: flex; align-items: center; justify-content: center; font-weight: 700;
+    }
+    .lb-uname { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lb-uname.me { color: var(--primary-light); }
+
+    .lb-score-cell { font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--accent); text-align: right; }
+    .lb-wins-cell  { text-align: right; font-size: 0.88rem; color: var(--text-muted); }
+    .lb-games-cell { text-align: right; font-size: 0.82rem; color: var(--text-dim); }
+
+    .lb-loading-state { padding: 48px; text-align: center; color: var(--text-dim); }
+    .lb-empty { padding: 48px; text-align: center; color: var(--text-dim); }
+
+    /* My rank banner */
+    .my-rank-banner {
+      background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.25);
+      border-radius: var(--radius-sm); padding: 14px 20px; margin-top: 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      font-size: 0.9rem;
+    }
+    .my-rank-banner.hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- ── Navbar ─────────────────────────────────────────────── -->
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <span class="nav-logo-icon">⚡</span>
+      <span class="nav-logo-text">GameZone</span>
+    </a>
+    <div class="nav-links">
+      <a href="/#games"      class="nav-link">Games</a>
+      <a href="/leaderboard" class="nav-link" style="color:var(--text)">Leaderboard</a>
+      <a href="/profile"     class="nav-link">Profile</a>
+    </div>
+    <div class="nav-auth" id="nav-auth">
+      <button class="btn-ghost"   onclick="window.location='/'">Log In</button>
+      <button class="btn-primary" onclick="window.location='/'">Sign Up Free</button>
+    </div>
+    <div class="nav-user hidden" id="nav-user">
+      <span class="nav-username" id="nav-username"></span>
+      <img class="nav-avatar" id="nav-avatar" src="" alt="avatar"/>
+      <div class="nav-dropdown">
+        <div class="nav-dropdown-inner">
+          <a href="/profile">My Profile</a>
+          <a href="/leaderboard">Leaderboard</a>
+          <button onclick="doLogout()">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Main ───────────────────────────────────────────────── -->
+<div class="lb-page">
+  <div class="lb-page-header">
+    <h1 class="lb-page-title">🏆 Leaderboard</h1>
+    <p style="color:var(--text-muted);font-size:0.95rem">Top players across all games</p>
+  </div>
+
+  <div class="lb-filters">
+    <span class="filter-label">Period:</span>
+    <div class="filter-group">
+      <button class="filter-btn" data-period="week"  onclick="setFilter('period','week')">This Week</button>
+      <button class="filter-btn" data-period="month" onclick="setFilter('period','month')">This Month</button>
+      <button class="filter-btn active" data-period="all" onclick="setFilter('period','all')">All Time</button>
+    </div>
+  </div>
+
+  <div class="lb-table">
+    <div class="lb-table-header">
+      <div style="text-align:center">#</div>
+      <div>Player</div>
+      <div style="text-align:right">Best Score</div>
+      <div style="text-align:right">Wins</div>
+      <div style="text-align:right">Games</div>
+    </div>
+    <div id="lb-body">
+      <div class="lb-loading-state">Loading…</div>
+    </div>
+  </div>
+
+  <div class="my-rank-banner hidden" id="my-rank-banner">
+    <span id="my-rank-text"></span>
+    <a href="/profile" style="color:var(--primary-light);font-weight:600;font-size:0.85rem">View Profile →</a>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+let currentUser = null;
+let filters = { period: 'all' };
+
+async function init() {
+  try {
+    const res = await fetch('/api/auth/me', { credentials: 'include' });
+    if (res.ok) {
+      const d = await res.json();
+      if (d.user) { currentUser = d.user; showNav(d.user); }
+    }
+  } catch { /* guest */ }
+  loadLeaderboard();
+}
+
+function showNav(user) {
+  const navAuth = document.getElementById('nav-auth');
+  const navUser = document.getElementById('nav-user');
+  const navName = document.getElementById('nav-username');
+  const navAv   = document.getElementById('nav-avatar');
+  if (navAuth) navAuth.classList.add('hidden');
+  if (navUser) navUser.classList.remove('hidden');
+  if (navName) navName.textContent = user.username;
+  if (navAv && user.avatar_url) navAv.src = user.avatar_url;
+}
+
+async function loadLeaderboard() {
+  const body = document.getElementById('lb-body');
+  body.innerHTML = '<div class="lb-loading-state">Loading…</div>';
+
+  try {
+    const res  = await fetch(`/api/leaderboard?game=type-racer&period=${filters.period}`);
+    const data = await res.json();
+    const rows = data.leaderboard || [];
+
+    if (!rows.length) {
+      body.innerHTML = '<div class="lb-empty">No games played yet for this period.</div>';
+      return;
+    }
+
+    const rankClass = r => r === 1 ? 'gold' : r === 2 ? 'silver' : r === 3 ? 'bronze' : '';
+    const rankIcon  = r => r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : `#${r}`;
+
+    body.innerHTML = rows.map(p => {
+      const r   = Number(p.rank);
+      const isMe = currentUser && currentUser.id === p.id;
+      const initial = (p.username || '?')[0].toUpperCase();
+      const avatar  = p.avatar_url
+        ? `<img class="lb-avatar-sm" src="${p.avatar_url}" alt=""/>`
+        : `<div class="lb-avatar-sm">${initial}</div>`;
+      return `
+        <div class="lb-table-row${r <= 3 ? ' top-3' : ''}">
+          <div class="lb-rank-cell ${rankClass(r)}">${rankIcon(r)}</div>
+          <div class="lb-player-cell">${avatar}<span class="lb-uname${isMe?' me':''}">${escHtml(p.username)}${isMe?' (you)':''}</span></div>
+          <div class="lb-score-cell">${Number(p.high_score).toLocaleString()}</div>
+          <div class="lb-wins-cell">${p.wins}</div>
+          <div class="lb-games-cell">${p.total_games}</div>
+        </div>`;
+    }).join('');
+
+    // My rank banner
+    if (currentUser) {
+      const me = rows.find(p => p.id === currentUser.id);
+      const banner = document.getElementById('my-rank-banner');
+      const bannerText = document.getElementById('my-rank-text');
+      if (me) {
+        bannerText.textContent = `You are ranked #${me.rank} with a best score of ${Number(me.high_score).toLocaleString()}`;
+        banner.classList.remove('hidden');
+      }
+    }
+  } catch {
+    body.innerHTML = '<div class="lb-empty">Failed to load leaderboard.</div>';
+  }
+}
+
+function setFilter(key, val) {
+  filters[key] = val;
+  document.querySelectorAll(`[data-${key}]`).forEach(b => {
+    b.classList.toggle('active', b.dataset[key] === val);
+  });
+  loadLeaderboard();
+}
+
+async function doLogout() {
+  await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+  window.location.href = '/';
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+init();
+</script>
+</body>
+</html>
