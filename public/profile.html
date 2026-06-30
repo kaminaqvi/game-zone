@@ -114,6 +114,35 @@
 
     .history-theme { font-size: 0.75rem; color: var(--text-dim); }
 
+    /* Level bar */
+    .level-bar-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 18px;
+    }
+    .level-bar-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .level-pill {
+      background: var(--primary); color: #fff; border-radius: 20px;
+      padding: 3px 10px; font-size: 0.75rem; font-weight: 700; white-space: nowrap;
+    }
+    .level-title-name { font-size: 0.88rem; font-weight: 700; flex: 1; }
+    .level-xp-info { font-size: 0.7rem; color: var(--text-dim); white-space: nowrap; }
+    .level-track { background: rgba(255,255,255,0.08); border-radius: 6px; height: 8px; overflow: hidden; }
+    .level-fill-bar {
+      height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-light));
+      border-radius: 6px; transition: width 0.8s ease;
+    }
+    /* Follow button */
+    .btn-follow-prof {
+      width: 100%; padding: 10px; border-radius: 10px; font-size: 0.9rem;
+      font-weight: 700; font-family: 'Space Grotesk', sans-serif; cursor: pointer;
+      transition: all 0.2s; border: none; background: var(--primary); color: #fff;
+    }
+    .btn-follow-prof:hover { opacity: 0.88; }
+    .btn-follow-prof.following {
+      background: rgba(255,255,255,0.07); color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
     .public-badge {
       display: inline-block; background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);
       border-radius: 50px; padding: 3px 12px; font-size: 0.75rem; font-weight: 600;
@@ -190,6 +219,23 @@
       <div class="stat-box"><div class="stat-box-num" id="s-best">—</div><div class="stat-box-label">Best Score</div></div>
       <div class="stat-box"><div class="stat-box-num" id="s-avg">—</div><div class="stat-box-label">Avg Score</div></div>
       <div class="stat-box" style="grid-column:1/-1"><div class="stat-box-num" id="s-wpm" style="color:#A78BFA">—</div><div class="stat-box-label">Best WPM</div></div>
+    </div>
+
+    <!-- Level / XP bar -->
+    <div class="level-bar-card" id="level-bar-card" style="display:none">
+      <div class="level-bar-head">
+        <span class="level-pill" id="level-pill">Lv. 1</span>
+        <span class="level-title-name" id="level-title-name">Rookie</span>
+        <span class="level-xp-info" id="level-xp-info">0 XP</span>
+      </div>
+      <div class="level-track">
+        <div class="level-fill-bar" id="level-fill-bar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Follow button (public profiles only) -->
+    <div id="follow-section" style="display:none">
+      <button id="btn-follow" class="btn-follow-prof">+ Follow</button>
     </div>
   </aside>
 
@@ -273,10 +319,45 @@ async function loadPublicProfile() {
 
     fillProfile(profData, false);
     fillHistory(histData.sessions || [], false);
+
+    // Follow button — only if logged in and not viewing own profile
+    if (currentUser && profData.user && profData.user.id !== currentUser.id) {
+      const followSec = document.getElementById('follow-section');
+      followSec.style.display = 'block';
+      try {
+        const fc = await fetch(`/api/friends/is-following/${encodeURIComponent(viewUsername)}`, { credentials: 'include' });
+        if (fc.ok) { const d = await fc.json(); updateFollowBtn(d.following); }
+      } catch {}
+    }
   } catch {
     document.getElementById('history-list').innerHTML = '<div class="empty-state">Failed to load.</div>';
   }
 }
+
+function updateFollowBtn(following) {
+  const btn = document.getElementById('btn-follow');
+  if (!btn) return;
+  btn.textContent = following ? '✓ Following' : '+ Follow';
+  btn.classList.toggle('following', following);
+}
+
+document.getElementById('btn-follow')?.addEventListener('click', async () => {
+  const btn = document.getElementById('btn-follow');
+  if (!btn) return;
+  const following = btn.classList.contains('following');
+  try {
+    const r = await fetch(
+      following ? `/api/friends/follow/${encodeURIComponent(viewUsername)}` : '/api/friends/follow',
+      {
+        method: following ? 'DELETE' : 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: following ? undefined : JSON.stringify({ username: viewUsername }),
+      }
+    );
+    if (r.ok) updateFollowBtn(!following);
+  } catch {}
+});
 
 /* ── Own profile ────────────────────────────────────────── */
 async function loadOwnProfile() {
@@ -319,6 +400,22 @@ function fillProfile(data, isOwn) {
   document.getElementById('s-best').textContent  = s.high_score  ? Number(s.high_score).toLocaleString() : '—';
   document.getElementById('s-avg').textContent   = s.avg_score   ? Math.round(s.avg_score) : '—';
   document.getElementById('s-wpm').textContent   = s.best_wpm    ? s.best_wpm + ' WPM' : '—';
+
+  // Level bar
+  const XP_TITLES = [[28,'God of Keys'],[22,'Legend'],[17,'Champion'],[12,'Word Wizard'],[8,'Speed Demon'],[5,'Contender'],[3,'Racer'],[1,'Rookie']];
+  const xp  = u.xp    || 0;
+  const lvl = u.level || 1;
+  const prevXp = (lvl - 1) * (lvl - 1) * 100;
+  const nextXp = lvl < 30 ? lvl * lvl * 100 : null;
+  const pct  = nextXp ? Math.min(100, Math.round((xp - prevXp) / (nextXp - prevXp) * 100)) : 100;
+  const ttl  = (XP_TITLES.find(([t]) => lvl >= t) || [0,'Rookie'])[1];
+  document.getElementById('level-pill').textContent      = `Lv. ${lvl}`;
+  document.getElementById('level-title-name').textContent = ttl;
+  document.getElementById('level-xp-info').textContent   = nextXp
+    ? `${xp - prevXp} / ${nextXp - prevXp} XP`
+    : `${xp} XP · MAX`;
+  document.getElementById('level-fill-bar').style.width  = pct + '%';
+  document.getElementById('level-bar-card').style.display = 'block';
 
   if (isOwn) {
     document.getElementById('edit-username').value = u.username || '';

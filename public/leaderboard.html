@@ -134,6 +134,10 @@
       <button class="filter-btn" data-period="month" onclick="setFilter('period','month')">This Month</button>
       <button class="filter-btn active" data-period="all" onclick="setFilter('period','all')">All Time</button>
     </div>
+    <div class="filter-group hidden" id="friends-filter-group" style="margin-left:12px">
+      <button class="filter-btn active" data-view="all"     onclick="setFilter('view','all')">Everyone</button>
+      <button class="filter-btn"        data-view="friends" onclick="setFilter('view','friends')">Friends 👥</button>
+    </div>
   </div>
 
   <div class="lb-table">
@@ -160,14 +164,17 @@
 'use strict';
 
 let currentUser = null;
-let filters = { period: 'all' };
+let filters = { period: 'all', view: 'all' };
 
 async function init() {
   try {
     const res = await fetch('/api/auth/me', { credentials: 'include' });
     if (res.ok) {
       const d = await res.json();
-      if (d.user) { currentUser = d.user; showNav(d.user); }
+      if (d.user) {
+        currentUser = d.user; showNav(d.user);
+        document.getElementById('friends-filter-group')?.classList.remove('hidden');
+      }
     }
   } catch { /* guest */ }
   loadLeaderboard();
@@ -189,7 +196,8 @@ async function loadLeaderboard() {
   body.innerHTML = '<div class="lb-loading-state">Loading…</div>';
 
   try {
-    const res  = await fetch(`/api/leaderboard?game=type-racer&period=${filters.period}`);
+    const friendsParam = filters.view === 'friends' ? '&friends=1' : '';
+    const res  = await fetch(`/api/leaderboard?game=type-racer&period=${filters.period}${friendsParam}`);
     const data = await res.json();
     const rows = data.leaderboard || [];
 

@@ -30,8 +30,20 @@ const TABLES = [
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 
-  // Migration: add wpm column to existing tables that predate this field
-  `ALTER TABLE game_sessions ADD COLUMN IF NOT EXISTS wpm INT DEFAULT 0`,
+  `CREATE TABLE IF NOT EXISTS friends (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    user_id    INT NOT NULL,
+    friend_id  INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uf (user_id, friend_id),
+    FOREIGN KEY (user_id)   REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (friend_id) REFERENCES users(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // Migrations — safe to re-run
+  `ALTER TABLE game_sessions ADD COLUMN IF NOT EXISTS wpm   INT DEFAULT 0`,
+  `ALTER TABLE users         ADD COLUMN IF NOT EXISTS xp    INT DEFAULT 0`,
+  `ALTER TABLE users         ADD COLUMN IF NOT EXISTS level INT DEFAULT 1`,
 ];
 
 async function initDB() {

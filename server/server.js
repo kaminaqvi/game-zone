@@ -8,8 +8,9 @@ const session  = require('express-session');
 const gm          = require('./gameManager');
 const { initDB }  = require('./db/init');
 const { router: authRouter, passport } = require('./routes/auth');
-const usersRouter = require('./routes/users');
-const lbRouter    = require('./routes/leaderboard');
+const usersRouter   = require('./routes/users');
+const lbRouter      = require('./routes/leaderboard');
+const friendsRouter = require('./routes/friends');
 
 const app    = express();
 const server = http.createServer(app);
@@ -40,6 +41,7 @@ app.get('/u/:username', (_req, res) => res.sendFile(path.join(__dirname, '../pub
 app.use('/api/auth',        authRouter);
 app.use('/api/users',       usersRouter);
 app.use('/api/leaderboard', lbRouter);
+app.use('/api/friends',     friendsRouter);
 
 /* ── Socket.io ────────────────────────────────────────────── */
 const playerRooms = new Map();

@@ -964,3 +964,46 @@ body.theme-space .stars { display: block; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+
+/* ── Locked skin overlay ────────────────────────────────── */
+.char-pick-btn { position: relative; }
+.char-pick-btn.skin-locked { opacity: 0.55; cursor: not-allowed; }
+.char-pick-btn.skin-locked:hover { transform: none; background: rgba(255,255,255,0.12); }
+.lock-overlay {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
+  font-size: 1.1rem; background: rgba(0,0,0,0.48); border-radius: 10px;
+  pointer-events: none;
+}
+.lock-tip {
+  display: none; font-size: 0.58rem; color: #fcd34d; font-weight: 700;
+  text-align: center; padding: 0 4px; line-height: 1.2; white-space: normal;
+  font-family: 'Nunito', sans-serif;
+}
+.char-pick-btn.skin-locked:hover .lock-tip { display: block; }
+
+/* Lock toast */
+.skin-lock-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: rgba(20,10,50,0.96); border: 1px solid rgba(252,211,77,0.5);
+  color: #fcd34d; padding: 10px 22px; border-radius: 50px;
+  font-size: 0.9rem; font-weight: 700; font-family: 'Nunito', sans-serif;
+  pointer-events: none; opacity: 0; transition: opacity 0.25s, transform 0.25s; z-index: 9999;
+}
+.skin-lock-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── XP popup ────────────────────────────────────────────── */
+.xp-popup {
+  position: fixed; bottom: 80px; right: 24px; z-index: 9999;
+  background: rgba(14,9,39,0.95); border: 2px solid rgba(167,139,250,0.5);
+  border-radius: 18px; padding: 14px 22px; text-align: center;
+  pointer-events: none; min-width: 140px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 24px rgba(124,58,237,0.3);
+}
+.xp-lvl {
+  font-size: 1rem; font-weight: 900; color: #FCD34D;
+  text-shadow: 0 0 12px rgba(252,211,77,0.7); margin-bottom: 4px;
+}
+.xp-num { font-size: 0.8rem; color: var(--purple-light); margin-bottom: 4px; }
+.xp-amt { font-size: 1.3rem; font-weight: 900; color: #4ade80;
+  text-shadow: 0 0 12px rgba(74,222,128,0.7); font-family: 'Fredoka One', cursive; }

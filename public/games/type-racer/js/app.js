@@ -15,15 +15,16 @@ const PlayerProfile = {
     try { return JSON.parse(localStorage.getItem(this.KEY)) || this._blank(); }
     catch { return this._blank(); }
   },
-  _blank() { return { name: '', wins: 0, races: 0, highScore: 0, history: [] }; },
+  _blank() { return { name: '', wins: 0, races: 0, highScore: 0, bestWpm: 0, history: [] }; },
   save(d) { localStorage.setItem(this.KEY, JSON.stringify(d)); },
-  afterRace({ name, score, place }) {
+  afterRace({ name, score, place, wpm = 0 }) {
     const p = this.get();
     p.name  = name;
     p.races++;
     if (place === 1) p.wins++;
     if (score > p.highScore) p.highScore = score;
-    p.history.unshift({ score, place, date: Date.now() });
+    if (wpm > (p.bestWpm || 0)) p.bestWpm = wpm;
+    p.history.unshift({ score, place, wpm, date: Date.now() });
     if (p.history.length > 30) p.history = p.history.slice(0, 30);
     this.save(p);
     return p;
@@ -58,6 +59,37 @@ class CharacterAnimator {
 
 const charAnimators = {};  // playerId → CharacterAnimator
 
+/* ── Locked skin helpers ─────────────────────────────────── */
+function isUnlocked(idx, profile) {
+  if (idx < 4) return true;
+  const p = profile || PlayerProfile.get();
+  if (idx === 4) return (p.wins    || 0) >= 5;
+  if (idx === 5) return (p.bestWpm || 0) >= 30;
+  if (idx === 6) return (p.races   || 0) >= 20;
+  if (idx === 7) return (p.bestWpm || 0) >= 50;
+  return false;
+}
+function lockHint(idx) {
+  if (idx === 4) return '🏆 Win 5 races to unlock!';
+  if (idx === 5) return '⚡ Reach 30 WPM to unlock!';
+  if (idx === 6) return '🎮 Play 20 races to unlock!';
+  if (idx === 7) return '🔥 Reach 50 WPM to unlock!';
+  return 'Locked';
+}
+let _lockToastTimer = null;
+function showLockToast(msg) {
+  let toast = document.getElementById('skin-lock-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'skin-lock-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.className = 'skin-lock-toast show';
+  clearTimeout(_lockToastTimer);
+  _lockToastTimer = setTimeout(() => { toast.className = 'skin-lock-toast'; }, 2400);
+}
+
 /* ══════════════════════════════════════════════════════════
    CHARACTER SVG BUILDER
    ══════════════════════════════════════════════════════════ */
@@ -71,12 +103,17 @@ function hxAdjust(hex, d) {
   return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
 }
 
-// 4 robot colour palettes — head, dark shade, face panel, shoe, plant leaf A/B
+// Robot colour palettes — 0-3 default, 4-7 locked (unlocked by milestones)
 const ROBOT_PALETTES = [
   { h:'#42A5F5', d:'#1565C0', f:'#E3F2FD', s:'#1a1a2e', pA:'#66BB6A', pB:'#388E3C' },
   { h:'#AB47BC', d:'#6A1B9A', f:'#F3E5F5', s:'#1a1a2e', pA:'#FF8A65', pB:'#E64A19' },
   { h:'#FF7043', d:'#BF360C', f:'#FBE9E7', s:'#212121', pA:'#66BB6A', pB:'#2E7D32' },
   { h:'#26C6DA', d:'#00696F', f:'#E0F7FA', s:'#1a1a2e', pA:'#FFCA28', pB:'#F57F17' },
+  // Locked skins
+  { h:'#FFD700', d:'#B8860B', f:'#FFFDE7', s:'#3d2600', pA:'#FF6D00', pB:'#E65100' }, // Gold — 5 wins
+  { h:'#E8F500', d:'#9E9D24', f:'#F9FBE7', s:'#1a1a00', pA:'#00B0FF', pB:'#0091EA' }, // Electric — 30 WPM
+  { h:'#7B1FA2', d:'#4A0072', f:'#F3E5F5', s:'#0d0020', pA:'#00E5FF', pB:'#00B8D4' }, // Galaxy — 20 races
+  { h:'#FF1744', d:'#B71C1C', f:'#FFEBEE', s:'#1a0000', pA:'#FF9100', pB:'#E65100' }, // Champion — 50 WPM
 ];
 
 function buildCharacterHTML(themeKey, charIndex, pid) {
@@ -267,6 +304,11 @@ const state = {
   gameStartTime: 0, totalCharsTyped: 0, wpm: 0,
 };
 const playerFloors = {};
+
+/* ── Ghost replay state ──────────────────────────────────── */
+let   ghostEl     = null;
+const ghostTimers = [];
+const ghostRec    = [];  // { wordIndex, elapsed } recorded this race
 
 /* ══════════════════════════════════════════════════════════
    CONFETTI
@@ -555,20 +597,28 @@ function renderPlayerList() {
 
     // Own character picker row — shows same SVG as in-game
     if (isMe) {
-      const picker = document.createElement('div');
+      const picker     = document.createElement('div');
       picker.className = 'char-picker';
-      const numOptions = state.theme === 'cars' || state.theme === 'aviation' ? 4 : 4;
-      for (let i = 0; i < numOptions; i++) {
+      const isVehicle  = state.theme === 'cars' || state.theme === 'aviation';
+      const numSkins   = isVehicle ? 4 : 8;
+      const snap       = PlayerProfile.get();
+      for (let i = 0; i < numSkins; i++) {
+        const locked = i >= 4 && !isUnlocked(i, snap);
         const btn = document.createElement('button');
-        btn.className = 'char-pick-btn' + (i === ci ? ' selected' : '');
-        btn.title = `Pick character ${i + 1}`;
-        btn.innerHTML = buildCharacterHTML(state.theme, i, 99 + i);
-        btn.addEventListener('click', () => {
-          socket.emit('set-character', { charIndex: i });
-          state.myCharIndex = i;
-          renderPlayerList();
-          gsap.fromTo(btn, { scale:0.7 }, { scale:1, duration:0.35, ease:'back.out(2)' });
-        });
+        btn.className = 'char-pick-btn' + (i === ci ? ' selected' : '') + (locked ? ' skin-locked' : '');
+        btn.title = locked ? lockHint(i) : `Pick character ${i + 1}`;
+        btn.innerHTML = buildCharacterHTML(state.theme, i, 99 + i)
+          + (locked ? `<div class="lock-overlay">🔒<span class="lock-tip">${lockHint(i)}</span></div>` : '');
+        if (locked) {
+          btn.addEventListener('click', () => showLockToast(lockHint(i)));
+        } else {
+          btn.addEventListener('click', () => {
+            socket.emit('set-character', { charIndex: i });
+            state.myCharIndex = i;
+            renderPlayerList();
+            gsap.fromTo(btn, { scale:0.7 }, { scale:1, duration:0.35, ease:'back.out(2)' });
+          });
+        }
         picker.appendChild(btn);
       }
       div.appendChild(picker);
@@ -702,8 +752,12 @@ function initGame() {
   buildNatureBg(state.theme);
 
   state.players.forEach(p => { playerFloors[p.id] = 0; });
+  ghostEl = null;
+  ghostTimers.forEach(clearTimeout); ghostTimers.length = 0;
+  ghostRec.length = 0;
 
   buildJumpArena();
+  buildGhostOverlay();
   markTargetPlatform(0);
   updateWordCounter();
   updateScoreDisplay();
@@ -899,6 +953,78 @@ function updateProgressBar(playerId, wordsDone) {
   const char  = document.getElementById(`progchar-${playerId}`);
   if (fill) fill.style.height = pct + '%';
   if (char) char.style.bottom = Math.max(0, pct - 8) + '%';
+}
+
+/* ──────────────────────────────────────────────────────────
+   GHOST REPLAY
+   ────────────────────────────────────────────────────────── */
+function buildGhostOverlay() {
+  const key = `typeracer_ghost_v1_${state.theme}_${state.difficulty}`;
+  let ghost; try { ghost = JSON.parse(localStorage.getItem(key)); } catch {}
+  if (!ghost || !ghost.timings || !ghost.timings.length) return;
+
+  const inner = document.getElementById(`inner-${state.playerId}`);
+  if (!inner) return;
+  ghostEl = document.createElement('div');
+  ghostEl.id = 'ghost-char';
+  ghostEl.style.cssText = [
+    `position:absolute`,
+    `bottom:${charBottomPx(0)}px`,
+    `left:calc(50% + 34px)`,
+    `opacity:0.36`,
+    `pointer-events:none`,
+    `transition:bottom 0.7s ease,left 0.5s ease`,
+    `filter:grayscale(0.5) hue-rotate(160deg)`,
+    `z-index:6`,
+  ].join(';');
+  ghostEl.innerHTML = buildCharacterHTML(state.theme, state.myCharIndex, 998);
+  const lbl = document.createElement('div');
+  lbl.style.cssText = 'position:absolute;top:-18px;left:0;width:100%;text-align:center;font-size:0.62rem;color:rgba(255,255,255,0.55);white-space:nowrap;font-family:Nunito,sans-serif;font-weight:700;';
+  lbl.textContent = '👻 ' + (ghost.wpm ? ghost.wpm + ' WPM' : 'Best');
+  ghostEl.appendChild(lbl);
+  inner.appendChild(ghostEl);
+}
+
+function startGhostReplay() {
+  if (!ghostEl) return;
+  const key = `typeracer_ghost_v1_${state.theme}_${state.difficulty}`;
+  let ghost; try { ghost = JSON.parse(localStorage.getItem(key)); } catch {}
+  if (!ghost || !ghost.timings) return;
+  ghostTimers.forEach(clearTimeout); ghostTimers.length = 0;
+  ghost.timings.forEach(({ wordIndex, elapsed }) => {
+    const t = setTimeout(() => {
+      if (!ghostEl) return;
+      const floor  = wordIndex + 1;
+      ghostEl.style.bottom = charBottomPx(floor) + 'px';
+      const isLeft = floor % 2 === 1;
+      ghostEl.style.left   = `calc(${isLeft ? '29.5%' : '70.5%'} + 8px)`;
+    }, elapsed);
+    ghostTimers.push(t);
+  });
+}
+
+function saveGhostBest() {
+  if (ghostRec.length !== state.words.length) return;
+  const key      = `typeracer_ghost_v1_${state.theme}_${state.difficulty}`;
+  const lastTime = ghostRec[ghostRec.length - 1].elapsed;
+  let existing; try { existing = JSON.parse(localStorage.getItem(key)); } catch {}
+  if (!existing || lastTime < existing.totalTime) {
+    localStorage.setItem(key, JSON.stringify({
+      totalTime: lastTime, timings: [...ghostRec], wpm: state.wpm, savedAt: Date.now(),
+    }));
+  }
+}
+
+function showXpPopup(xpGained, leveledUp, newLevel, title) {
+  const popup = document.createElement('div');
+  popup.className = 'xp-popup';
+  popup.innerHTML = leveledUp
+    ? `<div class="xp-lvl">🎉 LEVEL UP!</div><div class="xp-num">Level ${newLevel} · ${title}</div><div class="xp-amt">+${xpGained} XP</div>`
+    : `<div class="xp-amt">+${xpGained} XP</div>`;
+  document.body.appendChild(popup);
+  gsap.fromTo(popup, { y:60, opacity:0, scale:0.8 }, { y:0, opacity:1, scale:1, duration:0.5, ease:'back.out(2)',
+    onComplete: () => gsap.to(popup, { y:-40, opacity:0, duration:0.5, delay: leveledUp ? 3.5 : 2,
+      onComplete: () => popup.remove() }) });
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -1181,6 +1307,7 @@ function enableTyping() {
   updatePlatWord();
   // Start idle animation on all characters
   Object.values(charAnimators).forEach(a => a.set('idle'));
+  startGhostReplay();
 }
 
 function updateWpmDisplay() {
@@ -1316,6 +1443,7 @@ function handleCorrect() {
   }
 
   updateProgressBar(state.playerId, state.currentWordIndex);
+  if (state.gameStartTime) ghostRec.push({ wordIndex: done, elapsed: Date.now() - state.gameStartTime });
   socket.emit('word-correct', { wordIndex: done, score: state.score, wpm: state.wpm });
 
   if (state.currentWordIndex < state.words.length) {
@@ -1382,7 +1510,8 @@ function showResults(results) {
   // Save profile (local)
   const myResult = results.find(r => r.id === state.playerId);
   if (myResult) {
-    const profile = PlayerProfile.afterRace({ name: state.playerName, score: state.score, place: myResult.place });
+    const profile = PlayerProfile.afterRace({ name: state.playerName, score: state.score, place: myResult.place, wpm: state.wpm });
+    saveGhostBest();
     updateProfileBar(profile);
     // Post to server if logged in
     fetch('/api/auth/me', { credentials: 'include' })
@@ -1403,7 +1532,10 @@ function showResults(results) {
               placement:     myResult.place,
               players_count: results.length,
             }),
-          }).catch(() => {});
+          })
+          .then(r => r.ok ? r.json() : null)
+          .then(data => { if (data && data.xpGained) showXpPopup(data.xpGained, data.leveledUp, data.newLevel, data.title); })
+          .catch(() => {});
         }
       }).catch(() => {});
   }
