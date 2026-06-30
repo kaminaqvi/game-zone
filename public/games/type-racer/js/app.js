@@ -514,6 +514,15 @@ const hostControlsEl = document.getElementById('host-controls');
 const waitingMsgEl   = document.getElementById('waiting-msg');
 const btnStart       = document.getElementById('btn-start');
 
+document.getElementById('room-code-box')?.addEventListener('click', () => {
+  const code = lobbyCodeEl?.textContent || '';
+  if (!code || code === '----') return;
+  navigator.clipboard?.writeText(code).then(() => {
+    const hint = document.getElementById('copy-hint');
+    if (hint) { hint.textContent = '✓ copied!'; setTimeout(() => { hint.textContent = 'tap to copy'; }, 1800); }
+  }).catch(() => {});
+});
+
 function renderLobby() {
   lobbyCodeEl.textContent = state.roomCode;
   gsap.from('.room-code-box', { scale:0.7, opacity:0, duration:0.5, ease:'back.out(2)' });
