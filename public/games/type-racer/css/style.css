@@ -204,8 +204,8 @@ input[type="text"]:focus {
 #screen-lobby {
   background: #0E0927;
   background-image:
-    radial-gradient(ellipse 600px 500px at 20% 30%, rgba(99,102,241,0.28) 0%, transparent 65%),
-    radial-gradient(ellipse 500px 400px at 80% 70%, rgba(124,58,237,0.22) 0%, transparent 65%);
+    radial-gradient(ellipse 600px 500px at 20% 30%, rgba(99,102,241,0.42) 0%, transparent 65%),
+    radial-gradient(ellipse 500px 400px at 80% 70%, rgba(124,58,237,0.36) 0%, transparent 65%);
   gap: 14px; justify-content: flex-start; padding: 24px 20px 32px;
 }
 .lobby-header { text-align: center; width: 100%; margin-bottom: -2px; }
@@ -230,15 +230,16 @@ input[type="text"]:focus {
 @media (max-width: 640px) { .lobby-grid { grid-template-columns: 1fr; } }
 
 .player-list-card {
-  background: #1e1260; border: 2px solid #4f46e5;
+  background: #2a1a82; border: 2px solid #6d5ef5;
   border-radius: var(--radius); padding: 20px;
+  box-shadow: 0 4px 24px rgba(99,102,241,0.2);
 }
 .player-list-card h3 { margin-bottom: 12px; color: var(--yellow); font-size: 1.05rem; font-weight: 800; }
 
 .player-item {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px; border-radius: var(--radius-sm);
-  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.18);
   margin-bottom: 8px; font-size: 1rem;
 }
 .player-item.is-you { border: 2px solid var(--yellow); background: rgba(252,211,77,0.1); }
@@ -265,9 +266,10 @@ input[type="text"]:focus {
 .char-pick-btn.selected { border-color: var(--yellow); background: rgba(252,211,77,0.22); }
 
 .host-controls {
-  background: #1e1260;
-  border: 2px solid #6d28d9;
+  background: #2a1a82;
+  border: 2px solid #8b5cf6;
   border-radius: var(--radius); padding: 20px;
+  box-shadow: 0 4px 24px rgba(124,58,237,0.22);
 }
 .host-controls h3 {
   margin-bottom: 12px; font-size: 1.05rem; font-weight: 800;
@@ -275,27 +277,33 @@ input[type="text"]:focus {
 }
 .theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
 .theme-btn {
-  background: #2e1f8a; border: 2px solid #7c5ce8;
+  background: #3730a3; border: 2px solid #818cf8;
   border-radius: var(--radius-sm); padding: 12px 6px; cursor: pointer; text-align: center;
   transition: all 0.15s; color: #fff; font-family: inherit;
 }
-.theme-btn:hover { background: #3d2aab; border-color: #a78bfa; transform: scale(1.06); }
+.theme-btn:hover { background: #4338ca; border-color: #a5b4fc; transform: scale(1.06); }
 .theme-btn.selected { border-color: #fcd34d; background: #4c3800; box-shadow: 0 0 16px rgba(252,211,77,0.5); }
 .theme-btn .theme-icon { font-size: 2rem; display: block; line-height: 1.1; }
 .theme-btn .theme-name { font-size: 0.72rem; display: block; margin-top: 6px; color: #e0d7ff; font-weight: 700; letter-spacing: 0.2px; }
 .difficulty-row { display: flex; gap: 8px; margin-bottom: 16px; }
 .diff-btn {
-  flex: 1; background: #2e1f8a; border: 2px solid #7c5ce8;
+  flex: 1; background: #3730a3; border: 2px solid #818cf8;
   border-radius: var(--radius-sm); padding: 12px 6px; cursor: pointer; text-align: center;
   color: #fff; font-family: inherit; font-size: 0.9rem; transition: all 0.15s;
 }
-.diff-btn:hover { background: #3d2aab; border-color: #a78bfa; }
+.diff-btn:hover { background: #4338ca; border-color: #a5b4fc; }
 .diff-btn.selected { border-color: #fcd34d; background: #4c3800; box-shadow: 0 0 16px rgba(252,211,77,0.5); }
 .diff-btn .diff-icon  { font-size: 1.4rem; display: block; line-height: 1.2; }
 .diff-btn .diff-label { font-size: 0.82rem; color: #fff; font-weight: 800; margin-top: 4px; }
 .diff-btn .diff-desc  { font-size: 0.67rem; color: #c4b5fd; margin-top: 2px; font-weight: 600; }
-.waiting-msg { text-align: center; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.waiting-sub { color: rgba(255,255,255,0.6); font-size: 0.9rem; margin: 0; }
+.waiting-msg {
+  text-align: center; padding: 28px 20px; display: flex; flex-direction: column;
+  align-items: center; gap: 14px;
+  background: #2a1a82; border: 2px solid #8b5cf6;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 24px rgba(124,58,237,0.22);
+}
+.waiting-sub { color: rgba(255,255,255,0.75); font-size: 0.9rem; margin: 0; }
 
 /* Ready system */
 .ready-badge {
