@@ -635,6 +635,20 @@ input[type="text"]:focus {
 .ch-shake { animation: ch-shake 0.25s ease; color: #ef4444 !important; }
 @keyframes ch-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
 
+.word-error {
+  animation: word-shake 0.35s ease;
+  background: rgba(239,68,68,0.22);
+  outline: 2px solid rgba(239,68,68,0.55);
+  border-radius: 6px;
+}
+@keyframes word-shake {
+  0%,100% { transform: translateX(0); }
+  18%     { transform: translateX(-7px); }
+  36%     { transform: translateX(7px); }
+  54%     { transform: translateX(-5px); }
+  72%     { transform: translateX(5px); }
+}
+
 /* Target platform — golden glow */
 .platform.target-plat { animation: targetPulse 1.3s ease-in-out infinite; }
 @keyframes targetPulse {

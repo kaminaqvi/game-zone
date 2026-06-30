@@ -1187,23 +1187,37 @@ function updateWpmDisplay() {
 }
 
 /* ══════════════════════════════════════════════════════════
-   BEEP — wrong key audio feedback
+   SOUND ENGINE  (Web Audio API)
    ══════════════════════════════════════════════════════════ */
 let _audioCtx = null;
-function playBeep() {
+function _ac() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return _audioCtx;
+}
+function _tone(freq, type, dur, vol, delay = 0) {
   try {
-    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc  = _audioCtx.createOscillator();
-    const gain = _audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(_audioCtx.destination);
-    osc.type = 'square';
-    osc.frequency.value = 180;
-    gain.gain.setValueAtTime(0.08, _audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, _audioCtx.currentTime + 0.12);
-    osc.start(_audioCtx.currentTime);
-    osc.stop(_audioCtx.currentTime + 0.12);
+    const ctx = _ac(), osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination);
+    osc.type = type; osc.frequency.value = freq;
+    const t = ctx.currentTime + delay;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.start(t); osc.stop(t + dur);
   } catch {}
+}
+
+function playKeyClick() {
+  _tone(1100, 'sine', 0.045, 0.055);
+}
+function playWrongKey() {
+  _tone(160, 'square', 0.13, 0.09);
+}
+function playWordChime() {
+  _tone(523, 'sine', 0.18, 0.13, 0);
+  _tone(784, 'sine', 0.22, 0.16, 0.13);
+}
+function playFinishFanfare() {
+  [523, 659, 784, 1047].forEach((f, i) => _tone(f, 'sine', 0.28, 0.15, i * 0.13));
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1223,21 +1237,20 @@ document.addEventListener('keydown', e => {
   const isCorrect = e.key.toLowerCase() === expected;
 
   if (!isCorrect) {
-    playBeep();
-    // Flash current char red
+    playWrongKey();
     const f = state.currentWordIndex + 1;
     const platEl = document.getElementById(`platword-${f}`);
     if (platEl) {
-      const curEl = platEl.querySelector('.ch-cur');
-      if (curEl) {
-        curEl.classList.add('ch-shake');
-        setTimeout(() => curEl.classList.remove('ch-shake'), 280);
-      }
+      platEl.classList.remove('word-error');
+      void platEl.offsetWidth; // force reflow so re-triggering restarts animation
+      platEl.classList.add('word-error');
+      setTimeout(() => platEl.classList.remove('word-error'), 350);
     }
     return;
   }
 
   // Correct key — record and advance
+  playKeyClick();
   state.charResults[state.charIndex] = { typed: e.key, correct: true };
   state.charIndex++;
   state.totalCharsTyped++;
@@ -1268,6 +1281,7 @@ document.addEventListener('keydown', e => {
 });
 
 function handleCorrect() {
+  playWordChime();
   const done     = state.currentWordIndex;
   const newFloor = done + 1;
   addScore();
@@ -1333,6 +1347,7 @@ function handleProgressUpdate(players) {
    FINISHED BANNER
    ══════════════════════════════════════════════════════════ */
 function showFinishedMessage(place) {
+  playFinishFanfare();
   const labels = ['','🥇 1st Place!','🥈 2nd Place!','🥉 3rd Place!'];
   const label  = labels[place] || `#${place} Place!`;
   finishedMsgEl.innerHTML = `
