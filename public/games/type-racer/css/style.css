@@ -277,21 +277,21 @@ input[type="text"]:focus {
 }
 .theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
 .theme-btn {
-  background: #3730a3; border: 2px solid #818cf8;
+  background: #4f46e5; border: 2px solid #a5b4fc;
   border-radius: var(--radius-sm); padding: 12px 6px; cursor: pointer; text-align: center;
   transition: all 0.15s; color: #fff; font-family: inherit;
 }
-.theme-btn:hover { background: #4338ca; border-color: #a5b4fc; transform: scale(1.06); }
+.theme-btn:hover { background: #6366f1; border-color: #c7d2fe; transform: scale(1.06); }
 .theme-btn.selected { border-color: #fcd34d; background: #4c3800; box-shadow: 0 0 16px rgba(252,211,77,0.5); }
 .theme-btn .theme-icon { font-size: 2rem; display: block; line-height: 1.1; }
 .theme-btn .theme-name { font-size: 0.72rem; display: block; margin-top: 6px; color: #e0d7ff; font-weight: 700; letter-spacing: 0.2px; }
 .difficulty-row { display: flex; gap: 8px; margin-bottom: 16px; }
 .diff-btn {
-  flex: 1; background: #3730a3; border: 2px solid #818cf8;
+  flex: 1; background: #4f46e5; border: 2px solid #a5b4fc;
   border-radius: var(--radius-sm); padding: 12px 6px; cursor: pointer; text-align: center;
   color: #fff; font-family: inherit; font-size: 0.9rem; transition: all 0.15s;
 }
-.diff-btn:hover { background: #4338ca; border-color: #a5b4fc; }
+.diff-btn:hover { background: #6366f1; border-color: #c7d2fe; }
 .diff-btn.selected { border-color: #fcd34d; background: #4c3800; box-shadow: 0 0 16px rgba(252,211,77,0.5); }
 .diff-btn .diff-icon  { font-size: 1.4rem; display: block; line-height: 1.2; }
 .diff-btn .diff-label { font-size: 0.82rem; color: #fff; font-weight: 800; margin-top: 4px; }
