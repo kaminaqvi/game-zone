@@ -104,11 +104,16 @@ io.on('connection', socket => {
       words: started.words, theme: started.theme,
       difficulty: started.difficulty, players: started.players,
     });
-    // All players enable typing at the same server-controlled moment
-    setTimeout(() => {
-      const room = gm.getRoom(code);
-      if (room && room.state === 'racing') io.to(code).emit('game-start');
-    }, 3900);
+    // game-start is now sent only after ALL players finish/skip the cutscene
+  });
+
+  socket.on('cutscene-done', () => {
+    const code = playerRooms.get(socket.id);
+    if (!code) return;
+    const result = gm.markCutsceneDone(code, socket.id);
+    if (result && result.allDone) {
+      io.to(code).emit('game-start');
+    }
   });
 
   socket.on('word-correct', ({ wordIndex, score, wpm }) => {

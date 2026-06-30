@@ -29,6 +29,7 @@ function createRoom(hostId, hostName) {
     difficulty: 'easy',
     words: [],
     finishedCount: 0,
+    cutsceneDone: new Set(),
     cleanupTimer: null,
   });
   return code;
@@ -69,6 +70,13 @@ function setOptions(code, theme, difficulty) {
   room.difficulty = difficulty;
 }
 
+function markCutsceneDone(code, playerId) {
+  const room = rooms.get(code);
+  if (!room || room.state !== 'racing') return null;
+  room.cutsceneDone.add(playerId);
+  return { room, allDone: room.cutsceneDone.size >= room.players.length };
+}
+
 function toggleReady(code, playerId) {
   const room = rooms.get(code);
   if (!room || room.state !== 'waiting') return null;
@@ -87,6 +95,7 @@ function startGame(code) {
   room.words = shuffleSlice(WORD_BANKS[room.difficulty], count);
   room.state = 'racing';
   room.finishedCount = 0;
+  room.cutsceneDone = new Set();
   room.players.forEach(p => { p.progress = 0; p.place = 0; p.score = 0; });
   return room;
 }
@@ -125,6 +134,7 @@ function resetRoom(code) {
   room.state = 'waiting';
   room.words = [];
   room.finishedCount = 0;
+  room.cutsceneDone = new Set();
   room.players.forEach(p => { p.progress = 0; p.place = 0; p.score = 0; p.ready = (p.id === room.host); });
   return room;
 }
@@ -145,4 +155,4 @@ function setCharacter(code, playerId, charIndex) {
   return room;
 }
 
-module.exports = { createRoom, getRoom, addPlayer, removePlayer, setOptions, toggleReady, startGame, recordProgress, resetRoom, listOpenRooms, setCharacter };
+module.exports = { createRoom, getRoom, addPlayer, removePlayer, setOptions, toggleReady, startGame, markCutsceneDone, recordProgress, resetRoom, listOpenRooms, setCharacter };

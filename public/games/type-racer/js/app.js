@@ -1099,14 +1099,31 @@ function advanceCutscene() {
 
 function hideCutscene() {
   gsap.to('.cutscene-card', { y:-40, opacity:0, scale:0.9, duration:0.4, ease:'power2.in',
-    onComplete: () => { cutsceneOverlay.classList.add('hidden'); startCountdown(); }
+    onComplete: () => { cutsceneOverlay.classList.add('hidden'); signalCutsceneDone(); }
   });
+}
+
+function signalCutsceneDone() {
+  socket.emit('cutscene-done');
+  // Show a waiting state until all players are done
+  countdownOverlay.classList.remove('hidden');
+  countdownNumber.className = 'countdown-number';
+  countdownNumber.textContent = '⏳';
+  let waitSub = document.getElementById('countdown-wait-sub');
+  if (!waitSub) {
+    waitSub = document.createElement('div');
+    waitSub.id = 'countdown-wait-sub';
+    waitSub.style.cssText = 'font-size:1rem;color:rgba(255,255,255,0.7);margin-top:10px;text-align:center;font-family:Nunito,sans-serif;font-weight:700;';
+    countdownOverlay.appendChild(waitSub);
+  }
+  waitSub.textContent = 'Waiting for others…';
+  waitSub.style.display = 'block';
 }
 
 btnNextPanel.addEventListener('click', advanceCutscene);
 btnSkipStory.addEventListener('click', () => {
   gsap.to('.cutscene-card', { opacity:0, scale:0.8, duration:0.3, ease:'power2.in',
-    onComplete: () => { cutsceneOverlay.classList.add('hidden'); startCountdown(); }
+    onComplete: () => { cutsceneOverlay.classList.add('hidden'); signalCutsceneDone(); }
   });
 });
 
@@ -1114,6 +1131,9 @@ btnSkipStory.addEventListener('click', () => {
    COUNTDOWN
    ══════════════════════════════════════════════════════════ */
 function startCountdown() {
+  // Hide the "waiting for others" sub-text if present
+  const waitSub = document.getElementById('countdown-wait-sub');
+  if (waitSub) waitSub.style.display = 'none';
   countdownOverlay.classList.remove('hidden');
   gsap.set(countdownOverlay, { opacity:1 });
   const steps = ['3','2','1','GO!'];
@@ -1127,8 +1147,11 @@ function startCountdown() {
       { scale:1,   opacity:1, rotation:0, duration:0.45, ease:'back.out(2)' }
     );
     i++;
-    if (i < steps.length) setTimeout(tick, val==='GO!' ? 650 : 900);
-    // enableTyping is triggered by server 'game-start' event for sync
+    if (i < steps.length) {
+      setTimeout(tick, val === 'GO!' ? 650 : 900);
+    } else {
+      setTimeout(enableTyping, 650);
+    }
   }
   tick();
 }
@@ -1450,7 +1473,7 @@ socket.on('game-starting', ({ words, theme, difficulty, players }) => {
   showScreen('screen-game');
   initGame();
 });
-socket.on('game-start',      ()            => enableTyping());
+socket.on('game-start', () => startCountdown());
 socket.on('progress-update', ({ players }) => handleProgressUpdate(players));
 socket.on('you-finished',    ({ place })   => showFinishedMessage(place));
 socket.on('game-over',       ({ results }) => setTimeout(() => showResults(results), 1800));
