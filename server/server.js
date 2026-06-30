@@ -78,6 +78,13 @@ io.on('connection', socket => {
     if (room) io.to(code).emit('character-updated', { players: room.players });
   });
 
+  socket.on('toggle-ready', () => {
+    const code = playerRooms.get(socket.id);
+    if (!code) return;
+    const room = gm.toggleReady(code, socket.id);
+    if (room) io.to(code).emit('player-joined', { players: room.players, host: room.host });
+  });
+
   socket.on('set-options', ({ theme, difficulty }) => {
     const code = playerRooms.get(socket.id);
     if (!code) return;

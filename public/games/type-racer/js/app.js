@@ -532,13 +532,17 @@ function renderPlayerList() {
     const char  = chars[ci % chars.length];
     const isMe  = p.id === state.playerId;
 
+    const readyBadge = p.ready
+      ? `<span class="ready-badge ready">✅ Ready</span>`
+      : `<span class="ready-badge not-ready">⏳ Not Ready</span>`;
+
     const div = document.createElement('div');
     div.className = 'player-item' + (isMe ? ' is-you' : '');
     const charSvg = buildCharacterHTML(state.theme, ci, 50 + idx);
     div.innerHTML = `
       <span class="p-char p-char-svg">${charSvg}</span>
       <span class="p-name">${p.name}${idx===0?' 👑':''}</span>
-      <span class="p-score">${isMe ? '(you)' : ''}</span>`;
+      <span class="p-score">${readyBadge}</span>`;
 
     // Own character picker row — shows same SVG as in-game
     if (isMe) {
@@ -613,9 +617,46 @@ function updateHostVisibility() {
     hostControlsEl.classList.add('hidden');
     waitingMsgEl.classList.remove('hidden');
   }
+  updateStartButton();
+  updateReadyButton();
 }
 
-btnStart.addEventListener('click', () => { pulseEl(btnStart); socket.emit('start-game'); });
+function updateStartButton() {
+  if (!state.isHost) return;
+  const nonHost = state.players.filter(p => p.id !== state.playerId);
+  const allReady = nonHost.length === 0 || nonHost.every(p => p.ready);
+  btnStart.disabled = !allReady;
+  btnStart.style.opacity = allReady ? '1' : '0.45';
+  btnStart.style.cursor  = allReady ? 'pointer' : 'not-allowed';
+  const waiting = nonHost.filter(p => !p.ready).length;
+  btnStart.textContent = allReady
+    ? '🏁 Start Race!'
+    : `⏳ Waiting for ${waiting} player${waiting > 1 ? 's' : ''}…`;
+}
+
+function updateReadyButton() {
+  if (state.isHost) return;
+  const me = state.players.find(p => p.id === state.playerId);
+  const btnReady = document.getElementById('btn-ready');
+  if (!btnReady || !me) return;
+  if (me.ready) {
+    btnReady.textContent = '✅ Ready!';
+    btnReady.classList.add('is-ready');
+  } else {
+    btnReady.textContent = '✅ I\'m Ready!';
+    btnReady.classList.remove('is-ready');
+  }
+}
+
+document.getElementById('btn-ready')?.addEventListener('click', () => {
+  socket.emit('toggle-ready');
+});
+
+btnStart.addEventListener('click', () => {
+  if (btnStart.disabled) return;
+  pulseEl(btnStart);
+  socket.emit('start-game');
+});
 
 /* ══════════════════════════════════════════════════════════
    GAME INIT
@@ -1390,6 +1431,8 @@ socket.on('player-joined', ({ players, host }) => {
   if (me) state.myCharIndex = me.charIndex;
   renderPlayerList();
   updateHostVisibility();
+  updateStartButton();
+  updateReadyButton();
   if (state.isHost) { renderThemePicker(); renderDifficultyPicker(); }
 });
 socket.on('options-updated', ({ theme, difficulty }) => {

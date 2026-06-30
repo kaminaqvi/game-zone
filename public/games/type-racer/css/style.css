@@ -282,7 +282,29 @@ input[type="text"]:focus {
 .diff-btn .diff-icon  { font-size: 1.4rem; display: block; }
 .diff-btn .diff-label { font-size: 0.8rem; color: #fff; font-weight: 700; }
 .diff-btn .diff-desc  { font-size: 0.65rem; color: rgba(255,255,255,0.85); margin-top: 2px; }
-.waiting-msg { text-align: center; color: rgba(255,255,255,0.75); font-size: 1.1rem; padding: 12px; }
+.waiting-msg { text-align: center; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.waiting-sub { color: rgba(255,255,255,0.6); font-size: 0.9rem; margin: 0; }
+
+/* Ready system */
+.ready-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 0.72rem; font-weight: 700; white-space: nowrap;
+}
+.ready-badge.ready     { background: rgba(74,222,128,0.18); color: #4ade80; border: 1px solid rgba(74,222,128,0.35); }
+.ready-badge.not-ready { background: rgba(251,191,36,0.14); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+
+.btn-ready-up {
+  padding: 12px 32px; border-radius: 50px; font-size: 1rem; font-weight: 800;
+  background: linear-gradient(135deg, #059669, #10b981);
+  border: none; color: #fff; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(16,185,129,0.4);
+  transition: all 0.2s; font-family: 'Nunito', sans-serif; letter-spacing: 0.3px;
+}
+.btn-ready-up:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(16,185,129,0.55); }
+.btn-ready-up.is-ready {
+  background: linear-gradient(135deg, #1d4ed8, #6d28d9);
+  box-shadow: 0 4px 20px rgba(109,40,217,0.4);
+}
 
 /* ════════════════════════════════════════════════════════════
    CUTSCENE
