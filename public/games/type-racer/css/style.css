@@ -257,31 +257,35 @@ input[type="text"]:focus {
 .char-pick-btn.selected { border-color: var(--yellow); background: rgba(252,211,77,0.22); }
 
 .host-controls {
-  background: rgba(22, 14, 60, 0.95); border: 1px solid rgba(139,92,246,0.4);
+  background: #1e1260;
+  border: 2px solid #6d28d9;
   border-radius: var(--radius); padding: 20px;
 }
-.host-controls h3 { margin-bottom: 12px; color: var(--yellow); font-size: 1.1rem; text-shadow: 0 0 12px rgba(252,211,77,0.4); }
+.host-controls h3 {
+  margin-bottom: 12px; font-size: 1.05rem; font-weight: 800;
+  color: #fcd34d; letter-spacing: 0.3px;
+}
 .theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
 .theme-btn {
-  background: rgba(99,102,241,0.22); border: 2px solid rgba(139,92,246,0.5);
-  border-radius: var(--radius-sm); padding: 10px 6px; cursor: pointer; text-align: center;
+  background: #2e1f8a; border: 2px solid #7c5ce8;
+  border-radius: var(--radius-sm); padding: 12px 6px; cursor: pointer; text-align: center;
   transition: all 0.15s; color: #fff; font-family: inherit;
 }
-.theme-btn:hover { background: rgba(99,102,241,0.38); border-color: rgba(139,92,246,0.8); transform: scale(1.05); }
-.theme-btn.selected { border-color: var(--yellow); background: rgba(252,211,77,0.22); box-shadow: 0 0 14px rgba(252,211,77,0.4); }
-.theme-btn .theme-icon { font-size: 1.8rem; display: block; }
-.theme-btn .theme-name { font-size: 0.72rem; display: block; margin-top: 4px; color: #fff; font-weight: 600; }
+.theme-btn:hover { background: #3d2aab; border-color: #a78bfa; transform: scale(1.06); }
+.theme-btn.selected { border-color: #fcd34d; background: #4c3800; box-shadow: 0 0 16px rgba(252,211,77,0.5); }
+.theme-btn .theme-icon { font-size: 2rem; display: block; line-height: 1.1; }
+.theme-btn .theme-name { font-size: 0.72rem; display: block; margin-top: 6px; color: #e0d7ff; font-weight: 700; letter-spacing: 0.2px; }
 .difficulty-row { display: flex; gap: 8px; margin-bottom: 16px; }
 .diff-btn {
-  flex: 1; background: rgba(99,102,241,0.22); border: 2px solid rgba(139,92,246,0.5);
-  border-radius: var(--radius-sm); padding: 10px; cursor: pointer; text-align: center;
+  flex: 1; background: #2e1f8a; border: 2px solid #7c5ce8;
+  border-radius: var(--radius-sm); padding: 12px 6px; cursor: pointer; text-align: center;
   color: #fff; font-family: inherit; font-size: 0.9rem; transition: all 0.15s;
 }
-.diff-btn:hover { background: rgba(99,102,241,0.38); border-color: rgba(139,92,246,0.8); }
-.diff-btn.selected { border-color: var(--yellow); background: rgba(252,211,77,0.22); box-shadow: 0 0 14px rgba(252,211,77,0.4); }
-.diff-btn .diff-icon  { font-size: 1.4rem; display: block; }
-.diff-btn .diff-label { font-size: 0.8rem; color: #fff; font-weight: 700; }
-.diff-btn .diff-desc  { font-size: 0.65rem; color: rgba(255,255,255,0.85); margin-top: 2px; }
+.diff-btn:hover { background: #3d2aab; border-color: #a78bfa; }
+.diff-btn.selected { border-color: #fcd34d; background: #4c3800; box-shadow: 0 0 16px rgba(252,211,77,0.5); }
+.diff-btn .diff-icon  { font-size: 1.4rem; display: block; line-height: 1.2; }
+.diff-btn .diff-label { font-size: 0.82rem; color: #fff; font-weight: 800; margin-top: 4px; }
+.diff-btn .diff-desc  { font-size: 0.67rem; color: #c4b5fd; margin-top: 2px; font-weight: 600; }
 .waiting-msg { text-align: center; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .waiting-sub { color: rgba(255,255,255,0.6); font-size: 0.9rem; margin: 0; }
 
