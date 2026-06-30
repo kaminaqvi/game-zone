@@ -82,6 +82,8 @@
       <div id="theme-grid" class="theme-grid"></div>
       <h3 class="mt-8">Difficulty ⚡</h3>
       <div id="difficulty-row" class="difficulty-row"></div>
+      <h3 class="mt-8">Round Type 🎮</h3>
+      <div id="round-type-row" class="round-type-row"></div>
       <button id="btn-start" class="btn btn-success btn-large full-width mt-16">🏁 Start Race!</button>
     </div>
     <div id="waiting-msg" class="waiting-msg hidden">
@@ -124,6 +126,9 @@
           <button class="btn btn-ghost" id="btn-skip-story">Skip</button>
           <button class="btn btn-primary" id="btn-next-panel">Next →</button>
         </div>
+        <label class="skip-forever-label">
+          <input type="checkbox" id="chk-skip-forever"> Don't show again
+        </label>
       </div>
     </div>
   </div>
@@ -148,9 +153,13 @@
     <div class="game-hud">
       <div class="hud-left">
         <span id="score-display" class="score-display">⭐ 0</span>
+        <span id="combo-display" class="combo-display"></span>
         <span id="word-counter" class="word-counter">Word 1 of 10</span>
       </div>
-      <span id="wpm-display" class="wpm-display">— WPM</span>
+      <div class="hud-right">
+        <span id="time-attack-hud" class="time-attack-hud hidden"></span>
+        <span id="wpm-display" class="wpm-display">— WPM</span>
+      </div>
     </div>
 
     <!-- Jump arena -->

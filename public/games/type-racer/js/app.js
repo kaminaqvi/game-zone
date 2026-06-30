@@ -6,6 +6,13 @@ const PLATFORM_H    = 32;
 const CHAR_ON_PLAT  = 10;
 const CAM_FROM_BOT  = 0.30;
 
+const ROUND_TYPES = [
+  { key: 'normal',      icon: '🏁', label: 'Normal',      desc: 'Classic race'     },
+  { key: 'survival',    icon: '💀', label: 'Survival',     desc: '30s → last = out' },
+  { key: 'timeattack',  icon: '⏱️', label: 'Time Attack',  desc: '60s countdown'    },
+  { key: 'suddendeath', icon: '⚡', label: 'Sudden Death', desc: '1 mistake = out'  },
+];
+
 /* ══════════════════════════════════════════════════════════
    PLAYER PROFILE  (localStorage)
    ══════════════════════════════════════════════════════════ */
@@ -296,12 +303,14 @@ function buildPlaneSVG(charIndex) {
    ══════════════════════════════════════════════════════════ */
 const state = {
   playerName: '', roomCode: '', playerId: '',
-  isHost: false, theme: 'dinosaurs', difficulty: 'easy',
+  isHost: false, theme: 'dinosaurs', difficulty: 'easy', roundType: 'normal',
   words: [], currentWordIndex: 0, players: [],
   myCharIndex: 0, gameActive: false,
   score: 0, lastWordTime: 0,
   charIndex: 0, charResults: [],
   gameStartTime: 0, totalCharsTyped: 0, wpm: 0,
+  streak: 0, combo: 1, eliminated: false,
+  taTimer: null, survivalTimer: null,
 };
 const playerFloors = {};
 
@@ -571,6 +580,7 @@ function renderLobby() {
   renderPlayerList();
   renderThemePicker();
   renderDifficultyPicker();
+  renderRoundTypePicker();
   updateHostVisibility();
 }
 
@@ -639,7 +649,7 @@ function renderThemePicker() {
     btn.addEventListener('click', () => {
       if (!state.isHost) return;
       state.theme = key;
-      socket.emit('set-options', { theme: key, difficulty: state.difficulty });
+      socket.emit('set-options', { theme: key, difficulty: state.difficulty, roundType: state.roundType });
       gsap.fromTo(btn, { scale:0.85 }, { scale:1, duration:0.35, ease:'back.out(2)' });
     });
     grid.appendChild(btn);
@@ -661,10 +671,37 @@ function renderDifficultyPicker() {
     btn.addEventListener('click', () => {
       if (!state.isHost) return;
       state.difficulty = d.key;
-      socket.emit('set-options', { theme: state.theme, difficulty: d.key });
+      socket.emit('set-options', { theme: state.theme, difficulty: d.key, roundType: state.roundType });
     });
     row.appendChild(btn);
   });
+}
+
+function renderRoundTypePicker() {
+  const row = document.getElementById('round-type-row');
+  if (!row) return;
+  row.innerHTML = '';
+  ROUND_TYPES.forEach(rt => {
+    const btn = document.createElement('button');
+    btn.className = 'round-btn' + (state.roundType === rt.key ? ' selected' : '');
+    btn.innerHTML = `<span class="round-icon">${rt.icon}</span><span class="round-label">${rt.label}</span><span class="round-desc">${rt.desc}</span>`;
+    btn.addEventListener('click', () => {
+      if (!state.isHost) return;
+      state.roundType = rt.key;
+      socket.emit('set-options', { theme: state.theme, difficulty: state.difficulty, roundType: rt.key });
+    });
+    row.appendChild(btn);
+  });
+}
+
+function updateStreakDisplay() {
+  const el = document.getElementById('combo-display');
+  if (!el) return;
+  if (state.streak < 2) { el.textContent = ''; el.className = 'combo-display'; return; }
+  const mult = state.combo > 1 ? ` ×${state.combo}` : '';
+  el.textContent = `🔥 ${state.streak}${mult}`;
+  el.className = 'combo-display' + (state.combo >= 2 ? ' combo-hot' : '');
+  gsap.fromTo(el, { scale: 1.4 }, { scale: 1, duration: 0.3, ease: 'back.out(2)' });
 }
 
 function updateHostVisibility() {
@@ -748,6 +785,14 @@ function initGame() {
   state.totalCharsTyped  = 0;
   state.wpm              = 0;
   if (wpmDisplayEl) wpmDisplayEl.textContent = '— WPM';
+  state.streak = 0; state.combo = 1; state.eliminated = false;
+  if (state.taTimer)      { clearInterval(state.taTimer);      state.taTimer = null; }
+  if (state.survivalTimer){ clearInterval(state.survivalTimer); state.survivalTimer = null; }
+  const elimEl = document.getElementById('eliminated-overlay');
+  if (elimEl) elimEl.style.display = 'none';
+  const taHud = document.getElementById('time-attack-hud');
+  if (taHud) { taHud.textContent = ''; taHud.className = 'time-attack-hud hidden'; }
+  updateStreakDisplay();
   finishedOverlay.classList.add('hidden');
   countdownOverlay.classList.add('hidden');
 
@@ -1154,8 +1199,9 @@ function addScore() {
   state.lastWordTime = now;
   const base  = 100;
   const bonus = Math.round(Math.max(0, 420 - elapsed / 7));
-  state.score += base + bonus;
-  updateScoreDisplay(base + bonus);
+  const gain  = Math.round((base + bonus) * state.combo);
+  state.score += gain;
+  updateScoreDisplay(gain);
 }
 
 function updateScoreDisplay(flash=0) {
@@ -1185,6 +1231,7 @@ const btnSkipStory    = document.getElementById('btn-skip-story');
 const btnNextPanel    = document.getElementById('btn-next-panel');
 
 function showCutscene() {
+  if (localStorage.getItem('typeracer_skip_cutscene') === '1') { signalCutsceneDone(); return; }
   cutscenePanel = 0;
   cutsceneOverlay.classList.remove('hidden');
   const dotsEl = document.getElementById('cutscene-dots');
@@ -1240,6 +1287,9 @@ function advanceCutscene() {
 }
 
 function hideCutscene() {
+  if (document.getElementById('chk-skip-forever')?.checked) {
+    localStorage.setItem('typeracer_skip_cutscene', '1');
+  }
   gsap.to('.cutscene-card', { y:-40, opacity:0, scale:0.9, duration:0.4, ease:'power2.in',
     onComplete: () => { cutsceneOverlay.classList.add('hidden'); signalCutsceneDone(); }
   });
@@ -1264,6 +1314,9 @@ function signalCutsceneDone() {
 
 btnNextPanel.addEventListener('click', advanceCutscene);
 btnSkipStory.addEventListener('click', () => {
+  if (document.getElementById('chk-skip-forever')?.checked) {
+    localStorage.setItem('typeracer_skip_cutscene', '1');
+  }
   gsap.to('.cutscene-card', { opacity:0, scale:0.8, duration:0.3, ease:'power2.in',
     onComplete: () => { cutsceneOverlay.classList.add('hidden'); signalCutsceneDone(); }
   });
@@ -1315,6 +1368,8 @@ function enableTyping() {
   // Start idle animation on all characters
   Object.values(charAnimators).forEach(a => a.set('idle'));
   startGhostReplay();
+  if (state.roundType === 'timeattack')  startTimeAttack();
+  else if (state.roundType === 'survival') startSurvival();
 }
 
 function updateWpmDisplay() {
@@ -1381,6 +1436,13 @@ document.addEventListener('keydown', e => {
 
   if (!isCorrect) {
     playWrongKey();
+    if (state.roundType === 'suddendeath' && !state.eliminated) {
+      state.eliminated = true;
+      state.gameActive = false;
+      showEliminatedOverlay('⚡ One mistake!<br>You\'re out!');
+      return;
+    }
+    if (state.streak > 0) { state.streak = 0; state.combo = 1; updateStreakDisplay(); }
     const f = state.currentWordIndex + 1;
     const platEl = document.getElementById(`platword-${f}`);
     if (platEl) {
@@ -1428,6 +1490,9 @@ function handleCorrect() {
   const done     = state.currentWordIndex;
   const newFloor = done + 1;
   addScore();
+  state.streak++;
+  state.combo = state.streak >= 15 ? 3 : state.streak >= 10 ? 2 : state.streak >= 5 ? 1.5 : 1;
+  updateStreakDisplay();
   state.currentWordIndex++;
   state.charIndex   = 0;
   state.charResults = [];
@@ -1619,18 +1684,19 @@ socket.on('player-joined', ({ players, host }) => {
   updateHostVisibility();
   updateStartButton();
   updateReadyButton();
-  if (state.isHost) { renderThemePicker(); renderDifficultyPicker(); }
+  if (state.isHost) { renderThemePicker(); renderDifficultyPicker(); renderRoundTypePicker(); }
 });
-socket.on('options-updated', ({ theme, difficulty }) => {
+socket.on('options-updated', ({ theme, difficulty, roundType }) => {
   state.theme = theme; state.difficulty = difficulty;
-  renderThemePicker(); renderDifficultyPicker(); renderPlayerList();
+  if (roundType) state.roundType = roundType;
+  renderThemePicker(); renderDifficultyPicker(); renderRoundTypePicker(); renderPlayerList();
 });
 socket.on('character-updated', ({ players }) => {
   state.players = players;
   renderPlayerList();
 });
-socket.on('game-starting', ({ words, theme, difficulty, players }) => {
-  Object.assign(state, { words, theme, difficulty, players, currentWordIndex: 0, charIndex: 0, charResults: [] });
+socket.on('game-starting', ({ words, theme, difficulty, players, roundType }) => {
+  Object.assign(state, { words, theme, difficulty, players, roundType: roundType || 'normal', currentWordIndex: 0, charIndex: 0, charResults: [] });
   const me = players.find(p => p.id === state.playerId);
   state.myCharIndex = me ? me.charIndex : 0;
   showScreen('screen-game');
@@ -1640,13 +1706,91 @@ socket.on('game-start', () => startCountdown());
 socket.on('progress-update', ({ players }) => handleProgressUpdate(players));
 socket.on('you-finished',    ({ place })   => showFinishedMessage(place));
 socket.on('game-over',       ({ results }) => setTimeout(() => showResults(results), 1800));
-socket.on('back-to-lobby', ({ players, host, theme, difficulty }) => {
-  Object.assign(state, { players, theme, difficulty, currentWordIndex: 0, charIndex: 0, charResults: [] });
+socket.on('back-to-lobby', ({ players, host, theme, difficulty, roundType }) => {
+  Object.assign(state, { players, theme, difficulty, roundType: roundType || 'normal', currentWordIndex: 0, charIndex: 0, charResults: [] });
   state.isHost = host === state.playerId;
   const me = players.find(p => p.id === state.playerId);
   state.myCharIndex = me ? me.charIndex : 0;
   showScreen('screen-lobby'); renderLobby();
 });
+
+/* ══════════════════════════════════════════════════════════
+   ROUND MODES
+   ══════════════════════════════════════════════════════════ */
+function startTimeAttack() {
+  let left = 60;
+  const hud = document.getElementById('time-attack-hud');
+  if (hud) { hud.classList.remove('hidden'); hud.textContent = `⏱️ ${left}s`; }
+  clearInterval(state.taTimer);
+  state.taTimer = setInterval(() => {
+    left--;
+    if (hud) {
+      hud.textContent = `⏱️ ${left}s`;
+      hud.className = 'time-attack-hud' + (left <= 10 ? ' urgent' : '');
+      if (left <= 10) gsap.fromTo(hud, { scale:1.3 }, { scale:1, duration:0.3 });
+    }
+    if (left <= 0) {
+      clearInterval(state.taTimer); state.taTimer = null;
+      if (state.gameActive) {
+        state.gameActive = false;
+        wordCounterEl.textContent = "⏱️ Time's Up!";
+        gsap.fromTo(wordCounterEl, { scale:1.4 }, { scale:1, duration:0.4 });
+        showEliminatedOverlay(`⏱️ Time's Up!<br>Score: ${state.score.toLocaleString()}`);
+        socket.emit('word-correct', { wordIndex: Math.max(0, state.currentWordIndex - 1), score: state.score, wpm: state.wpm });
+      }
+    }
+  }, 1000);
+}
+
+function startSurvival() {
+  let tick = 0;
+  clearInterval(state.survivalTimer);
+  state.survivalTimer = setInterval(() => {
+    if (!state.gameActive) { clearInterval(state.survivalTimer); return; }
+    tick++;
+    const alive = state.players.filter(p => !p.eliminated);
+    if (alive.length <= 1) { clearInterval(state.survivalTimer); return; }
+    const sorted = [...alive].sort((a, b) => a.progress - b.progress);
+    const last = sorted[0];
+    if (tick === 1) {
+      if (last.id === state.playerId) showSurvivalWarning();
+    } else {
+      clearInterval(state.survivalTimer);
+      if (last.id === state.playerId) {
+        state.eliminated = true;
+        state.gameActive = false;
+        showEliminatedOverlay('💀 Eliminated!<br>You were in last place!');
+      }
+    }
+  }, 30000);
+}
+
+function showSurvivalWarning() {
+  let el = document.getElementById('survival-warn');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'survival-warn';
+    el.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#dc2626;color:#fff;padding:10px 24px;border-radius:50px;font-weight:900;font-size:1rem;z-index:300;font-family:Nunito,sans-serif;display:none;pointer-events:none';
+    document.body.appendChild(el);
+  }
+  el.textContent = '⚠️ You\'re last! 30s or you\'re eliminated!';
+  el.style.display = 'block';
+  gsap.fromTo(el, { y:-20, opacity:0 }, { y:0, opacity:1, duration:0.4 });
+  setTimeout(() => gsap.to(el, { opacity:0, duration:0.5, onComplete:() => { el.style.display='none'; } }), 5000);
+}
+
+function showEliminatedOverlay(msg) {
+  let el = document.getElementById('eliminated-overlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'eliminated-overlay';
+    el.className = 'eliminated-overlay';
+    document.getElementById('screen-game').appendChild(el);
+  }
+  el.innerHTML = `<div class="elim-inner"><div class="elim-icon">💀</div><div class="elim-msg">${msg}</div></div>`;
+  el.style.display = 'flex';
+  gsap.fromTo(el, { opacity:0, scale:0.7 }, { opacity:1, scale:1, duration:0.5, ease:'back.out(2)' });
+}
 
 /* ══════════════════════════════════════════════════════════
    HELPERS

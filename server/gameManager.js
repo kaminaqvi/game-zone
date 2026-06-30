@@ -27,6 +27,7 @@ function createRoom(hostId, hostName) {
     state: 'waiting',
     theme: 'dinosaurs',
     difficulty: 'easy',
+    roundType: 'normal',
     words: [],
     finishedCount: 0,
     cutsceneDone: new Set(),
@@ -63,11 +64,12 @@ function removePlayer(code, playerId) {
   return room;
 }
 
-function setOptions(code, theme, difficulty) {
+function setOptions(code, theme, difficulty, roundType) {
   const room = rooms.get(code);
   if (!room) return;
   room.theme = theme;
   room.difficulty = difficulty;
+  if (roundType) room.roundType = roundType;
 }
 
 function markCutsceneDone(code, playerId) {

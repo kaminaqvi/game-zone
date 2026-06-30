@@ -87,12 +87,12 @@ io.on('connection', socket => {
     if (room) io.to(code).emit('player-joined', { players: room.players, host: room.host });
   });
 
-  socket.on('set-options', ({ theme, difficulty }) => {
+  socket.on('set-options', ({ theme, difficulty, roundType }) => {
     const code = playerRooms.get(socket.id);
     if (!code) return;
-    gm.setOptions(code, theme, difficulty);
+    gm.setOptions(code, theme, difficulty, roundType);
     const room = gm.getRoom(code);
-    if (room) io.to(code).emit('options-updated', { theme: room.theme, difficulty: room.difficulty });
+    if (room) io.to(code).emit('options-updated', { theme: room.theme, difficulty: room.difficulty, roundType: room.roundType });
   });
 
   socket.on('start-game', () => {
@@ -105,6 +105,7 @@ io.on('connection', socket => {
     io.to(code).emit('game-starting', {
       words: started.words, theme: started.theme,
       difficulty: started.difficulty, players: started.players,
+      roundType: started.roundType,
     });
     // game-start is now sent only after ALL players finish/skip the cutscene
   });
@@ -140,7 +141,8 @@ io.on('connection', socket => {
     if (!room || room.host !== socket.id) return;
     const reset = gm.resetRoom(code);
     if (reset) io.to(code).emit('back-to-lobby', {
-      players: reset.players, host: reset.host, theme: reset.theme, difficulty: reset.difficulty,
+      players: reset.players, host: reset.host, theme: reset.theme,
+      difficulty: reset.difficulty, roundType: reset.roundType,
     });
   });
 
