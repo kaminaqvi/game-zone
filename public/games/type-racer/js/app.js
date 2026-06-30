@@ -669,12 +669,19 @@ function renderDifficultyPicker() {
 
 function updateHostVisibility() {
   if (state.isHost) {
+    const wasHidden = hostControlsEl.classList.contains('hidden');
     hostControlsEl.classList.remove('hidden');
     waitingMsgEl.classList.add('hidden');
-    gsap.from(hostControlsEl, { y:20, opacity:0, duration:0.4, ease:'power2.out' });
+    if (wasHidden) {
+      gsap.fromTo(hostControlsEl, { y:20, opacity:0 }, { y:0, opacity:1, duration:0.4, ease:'power2.out' });
+    }
   } else {
+    const wasHidden = waitingMsgEl.classList.contains('hidden');
     hostControlsEl.classList.add('hidden');
     waitingMsgEl.classList.remove('hidden');
+    if (wasHidden) {
+      gsap.fromTo(waitingMsgEl, { y:20, opacity:0 }, { y:0, opacity:1, duration:0.4, ease:'power2.out' });
+    }
   }
   updateStartButton();
   updateReadyButton();
