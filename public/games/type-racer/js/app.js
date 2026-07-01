@@ -430,6 +430,18 @@ const btnCreate    = document.getElementById('btn-create');
 const btnJoin      = document.getElementById('btn-join');
 const landingError = document.getElementById('landing-error');
 
+// Auto-fill room code from ?room=XXXX share link
+(function handleRoomParam() {
+  const p = new URLSearchParams(window.location.search).get('room');
+  if (p && /^[A-Z]{4}$/i.test(p)) {
+    codeInput.value = p.toUpperCase();
+    history.replaceState({}, '', window.location.pathname);
+    landingError.style.color = '#4ade80';
+    landingError.textContent = `Room ${p.toUpperCase()} found! Enter your name and tap Join.`;
+    nameInput.focus();
+  }
+})();
+
 // Pre-fill name from profile
 (async function initProfile() {
   // If logged in via portal, pre-fill name and lock the field
@@ -576,9 +588,44 @@ document.getElementById('room-code-box')?.addEventListener('click', () => {
   }).catch(() => {});
 });
 
+function updateShareButtons() {
+  const code = state.roomCode;
+  if (!code) return;
+  const shareUrl  = `${location.origin}/games/type-racer/?room=${code}`;
+  const shareText = `Join my Type Racer room! Race me in real-time typing 🏎️\nRoom code: ${code}`;
+
+  const shareRow = document.getElementById('share-row');
+  if (shareRow) shareRow.classList.remove('hidden');
+
+  const btnCopy = document.getElementById('btn-copy-link');
+  if (btnCopy) {
+    btnCopy.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        btnCopy.textContent = '✓ Link Copied!';
+        setTimeout(() => { btnCopy.innerHTML = '📋 Copy Link'; }, 2200);
+      } catch {
+        btnCopy.textContent = shareUrl;
+      }
+    };
+  }
+
+  const btnWa = document.getElementById('btn-share-wa');
+  if (btnWa) {
+    btnWa.href = `https://wa.me/?text=${encodeURIComponent(shareText + '\n' + shareUrl)}`;
+  }
+
+  const btnNative = document.getElementById('btn-share-native');
+  if (btnNative && navigator.share) {
+    btnNative.classList.remove('hidden');
+    btnNative.onclick = () => navigator.share({ title: 'Join my Type Racer room!', text: shareText, url: shareUrl }).catch(() => {});
+  }
+}
+
 function renderLobby() {
   lobbyCodeEl.textContent = state.roomCode;
   gsap.from('.room-code-box', { scale:0.7, opacity:0, duration:0.5, ease:'back.out(2)' });
+  updateShareButtons();
   renderPlayerList();
   renderThemePicker();
   renderDifficultyPicker();

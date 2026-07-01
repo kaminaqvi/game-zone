@@ -226,6 +226,34 @@ input[type="text"]:focus {
 .room-code-box .code  { font-size: 2.8rem; font-weight: 900; letter-spacing: 10px; line-height: 1.1; }
 .room-code-box .copy-hint { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; opacity: 0.5; margin-top: 2px; }
 
+.share-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; flex-wrap: wrap; margin-top: 12px;
+}
+.share-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 18px; border-radius: 50px;
+  font-size: 0.82rem; font-weight: 700; font-family: 'Nunito', sans-serif;
+  cursor: pointer; border: none; text-decoration: none;
+  transition: transform 0.15s, box-shadow 0.2s; white-space: nowrap;
+}
+.share-btn:hover  { transform: scale(1.06); }
+.share-btn:active { transform: scale(0.97); }
+.share-btn-copy {
+  background: rgba(255,255,255,0.14);
+  border: 1.5px solid rgba(255,255,255,0.35);
+  color: #fff;
+}
+.share-btn-copy:hover { background: rgba(255,255,255,0.22); box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+.share-btn-wa {
+  background: #25D366; color: #fff;
+}
+.share-btn-wa:hover { background: #20bd5a; box-shadow: 0 4px 18px rgba(37,211,102,0.45); }
+.share-btn-native {
+  background: rgba(99,102,241,0.85); color: #fff;
+}
+.share-btn-native:hover { background: #6366F1; box-shadow: 0 4px 16px rgba(99,102,241,0.45); }
+
 .lobby-grid { display: grid; grid-template-columns: 1fr 1.15fr; gap: 16px; width: 100%; max-width: 880px; }
 @media (max-width: 640px) { .lobby-grid { grid-template-columns: 1fr; } }
 
