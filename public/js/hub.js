@@ -34,6 +34,219 @@ const GAMES = [
   },
 ];
 
+/* ── Theme ───────────────────────────────────────────────── */
+function initTheme() {
+  const saved = localStorage.getItem('gz-theme') || 'dark';
+  applyTheme(saved, false);
+}
+
+function applyTheme(theme, animate) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('gz-theme', theme);
+  const icon = document.getElementById('theme-icon');
+  if (icon) icon.textContent = theme === 'dark' ? '🌙' : '☀️';
+  if (animate && neuralCtx) drawNeural(); // repaint canvas colors
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark', true);
+}
+
+/* ── Neural canvas ───────────────────────────────────────── */
+let neuralCtx = null;
+let neuralAnimId = null;
+const PARTICLE_COUNT = 55;
+const LINK_DIST = 130;
+let particles = [];
+
+function initNeural() {
+  const canvas = document.getElementById('neural-canvas');
+  if (!canvas) return;
+  neuralCtx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width  = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const hero = canvas.parentElement;
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    particles.push({
+      x:  Math.random() * canvas.width,
+      y:  Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      r:  Math.random() * 1.5 + 1,
+    });
+  }
+
+  function drawNeural() {
+    const isDark  = document.documentElement.getAttribute('data-theme') !== 'light';
+    const dotClr  = isDark ? 'rgba(129,140,248,0.55)' : 'rgba(79,70,229,0.4)';
+    const lineClr = isDark ? 'rgba(99,102,241,'        : 'rgba(79,70,229,';
+
+    const w = canvas.width, h = canvas.height;
+    neuralCtx.clearRect(0, 0, w, h);
+
+    for (const p of particles) {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > w) p.vx *= -1;
+      if (p.y < 0 || p.y > h) p.vy *= -1;
+    }
+
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const d  = Math.sqrt(dx * dx + dy * dy);
+        if (d < LINK_DIST) {
+          const alpha = (1 - d / LINK_DIST) * 0.45;
+          neuralCtx.beginPath();
+          neuralCtx.strokeStyle = lineClr + alpha + ')';
+          neuralCtx.lineWidth = 0.8;
+          neuralCtx.moveTo(particles[i].x, particles[i].y);
+          neuralCtx.lineTo(particles[j].x, particles[j].y);
+          neuralCtx.stroke();
+        }
+      }
+    }
+
+    for (const p of particles) {
+      neuralCtx.beginPath();
+      neuralCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      neuralCtx.fillStyle = dotClr;
+      neuralCtx.fill();
+    }
+
+    neuralAnimId = requestAnimationFrame(drawNeural);
+  }
+
+  drawNeural();
+}
+
+/* ── Cursor glow ─────────────────────────────────────────── */
+function initCursorGlow() {
+  const hero  = document.querySelector('.hero');
+  const glow  = document.getElementById('hero-cursor-glow');
+  if (!hero || !glow) return;
+
+  hero.addEventListener('mousemove', e => {
+    const rect = hero.getBoundingClientRect();
+    glow.style.left = (e.clientX - rect.left) + 'px';
+    glow.style.top  = (e.clientY - rect.top)  + 'px';
+    glow.style.opacity = '1';
+  });
+  hero.addEventListener('mouseleave', () => { glow.style.opacity = '0'; });
+  glow.style.opacity = '0';
+  glow.style.transition = 'opacity 0.4s';
+}
+
+/* ── Typewriter ──────────────────────────────────────────── */
+const TW_WORDS = ['Typing Skills', 'WPM Score', 'Racing Speed', 'Reaction Time', 'Game Rank'];
+let twIndex = 0;
+let twCharIndex = 0;
+let twDeleting = false;
+let twTimeout = null;
+
+function runTypewriter() {
+  const el = document.getElementById('tw-target');
+  if (!el) return;
+  const word = TW_WORDS[twIndex];
+
+  if (!twDeleting) {
+    twCharIndex++;
+    el.textContent = word.slice(0, twCharIndex);
+    if (twCharIndex === word.length) {
+      twDeleting = true;
+      twTimeout = setTimeout(runTypewriter, 1800);
+      return;
+    }
+    twTimeout = setTimeout(runTypewriter, 90);
+  } else {
+    twCharIndex--;
+    el.textContent = word.slice(0, twCharIndex);
+    if (twCharIndex === 0) {
+      twDeleting = false;
+      twIndex = (twIndex + 1) % TW_WORDS.length;
+      twTimeout = setTimeout(runTypewriter, 280);
+      return;
+    }
+    twTimeout = setTimeout(runTypewriter, 48);
+  }
+}
+
+/* ── Scroll reveal ───────────────────────────────────────── */
+function initScrollReveal() {
+  const els = document.querySelectorAll('[data-reveal]');
+  if (!els.length) return;
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('revealed');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  els.forEach(el => observer.observe(el));
+}
+
+/* ── Card 3-D tilt ───────────────────────────────────────── */
+function initCardTilt() {
+  document.querySelectorAll('.game-card.available').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const rect   = card.getBoundingClientRect();
+      const cx     = rect.left + rect.width  / 2;
+      const cy     = rect.top  + rect.height / 2;
+      const rx     = ((e.clientY - cy) / (rect.height / 2)) * -8;
+      const ry     = ((e.clientX - cx) / (rect.width  / 2)) *  8;
+      card.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg) scale(1.03)`;
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
+      card.style.transition = 'transform 0.5s ease';
+    });
+    card.addEventListener('mouseenter', () => {
+      card.style.transition = 'transform 0.1s ease, border-color 0.3s, box-shadow 0.3s';
+    });
+  });
+}
+
+/* ── Toast notification ──────────────────────────────────── */
+function showToast(msg, type = 'success', duration = 3500) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+
+  const icon = type === 'success' ? '✅' : '❌';
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span>${icon}</span><span>${escHtml(msg)}</span>`;
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.transition = 'opacity 0.4s, transform 0.4s';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(12px)';
+    setTimeout(() => toast.remove(), 420);
+  }, duration);
+}
+
+/* ── Handle Google auth redirect params ──────────────────── */
+function handleAuthParams() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('auth')) {
+    const val = params.get('auth');
+    history.replaceState({}, '', '/');
+    if (val === 'success') {
+      showToast('Signed in with Google!', 'success');
+    } else if (val === 'fail') {
+      showToast('Google sign-in failed — please try again', 'error');
+    }
+  }
+}
+
 /* ── Auth state ──────────────────────────────────────────── */
 let currentUser = null;
 
@@ -83,6 +296,7 @@ function setLoggedOut() {
 async function logout() {
   await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
   setLoggedOut();
+  showToast('Signed out successfully', 'success');
 }
 
 /* ── Game cards ──────────────────────────────────────────── */
@@ -96,8 +310,12 @@ function buildGameCards() {
     card.style.setProperty('--card-gradient', g.gradient);
     if (g.available) card.onclick = () => navigate(g.url);
 
+    const badge = g.available
+      ? `<div class="card-live-badge"><div class="card-live-dot"></div>Live</div>`
+      : `<span class="coming-soon-badge">Coming Soon</span>`;
+
     card.innerHTML = `
-      ${!g.available ? '<span class="coming-soon-badge">Coming Soon</span>' : ''}
+      ${badge}
       <div class="card-icon">${g.icon}</div>
       <div class="card-title">${g.title}</div>
       <div class="card-desc">${g.desc}</div>
@@ -108,6 +326,8 @@ function buildGameCards() {
     `;
     grid.appendChild(card);
   });
+
+  initCardTilt();
 }
 
 function navigate(url) {
@@ -158,11 +378,10 @@ async function loadLeaderboard() {
 
 /* ── Auth modal ──────────────────────────────────────────── */
 function openAuth(tab) {
-  tab = tab || 'login';
   const modal = document.getElementById('auth-modal');
   if (modal) {
     modal.classList.remove('hidden');
-    switchTab(tab);
+    switchTab(tab || 'login');
   }
 }
 
@@ -218,6 +437,7 @@ async function submitLogin(e) {
     if (res.ok && data.user) {
       setLoggedIn(data.user);
       closeAuth();
+      showToast(`Welcome back, ${data.user.username}!`, 'success');
     } else {
       showAuthError(data.error || 'Login failed');
     }
@@ -250,6 +470,7 @@ async function submitSignup(e) {
     if (res.ok && data.user) {
       setLoggedIn(data.user);
       closeAuth();
+      showToast(`Welcome to GameZone, ${data.user.username}! 🎉`, 'success');
     } else {
       showAuthError(data.error || 'Signup failed');
     }
@@ -296,10 +517,16 @@ function escHtml(s) {
 
 /* ── Init ────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
   buildGameCards();
   loadAuthState();
   loadLeaderboard();
   loadStats();
+  handleAuthParams();
+  initNeural();
+  initCursorGlow();
+  initScrollReveal();
+  setTimeout(runTypewriter, 1200);
 
   const overlay = document.getElementById('page-transition');
   if (overlay && typeof gsap !== 'undefined') {

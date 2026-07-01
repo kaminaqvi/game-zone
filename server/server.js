@@ -19,11 +19,38 @@ const io     = new Server(server);
 const isProd = process.env.NODE_ENV === 'production';
 if (isProd) app.set('trust proxy', 1); // trust reverse proxy (Apache/Nginx)
 
+/* ── Session store: MariaDB if DB is available, else memory ── */
+function buildSessionStore() {
+  if (!process.env.DB_HOST) return undefined; // MemoryStore fallback (dev)
+  try {
+    const MySQLStore = require('express-mysql-session')(session);
+    return new MySQLStore({
+      host:               process.env.DB_HOST,
+      port:               process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 3306,
+      user:               process.env.DB_USER,
+      password:           process.env.DB_PASS,
+      database:           process.env.DB_NAME,
+      createDatabaseTable: true,
+      schema: {
+        tableName:   'sessions',
+        columnNames: { session_id: 'session_id', expires: 'expires', data: 'data' },
+      },
+      clearExpired:    true,
+      checkExpirationInterval: 1000 * 60 * 60, // prune expired rows every hour
+    });
+  } catch (e) {
+    console.warn('⚠️  express-mysql-session unavailable — using MemoryStore:', e.message);
+    return undefined;
+  }
+}
+
 /* ── Session & auth middleware ────────────────────────────── */
+const sessionStore = buildSessionStore();
 app.use(session({
   secret:            process.env.SESSION_SECRET || 'gz-dev-secret-change-in-prod',
   resave:            false,
   saveUninitialized: false,
+  store:             sessionStore,
   cookie: { secure: isProd, maxAge: 1000 * 60 * 60 * 24 * 30 },
 }));
 app.use(passport.initialize());
