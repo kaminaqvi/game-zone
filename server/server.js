@@ -105,7 +105,7 @@ io.on('connection', socket => {
     io.to(code).emit('game-starting', {
       words: started.words, theme: started.theme,
       difficulty: started.difficulty, players: started.players,
-      roundType: started.roundType,
+      roundType: started.roundType, paragraph: started.paragraph || null,
     });
     // game-start is now sent only after ALL players finish/skip the cutscene
   });

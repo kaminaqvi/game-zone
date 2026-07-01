@@ -8,6 +8,7 @@ const CAM_FROM_BOT  = 0.30;
 
 const ROUND_TYPES = [
   { key: 'normal',      icon: '🏁', label: 'Normal',      desc: 'Classic race'     },
+  { key: 'paragraph',   icon: '📖', label: 'Paragraph',   desc: 'Type a passage'   },
   { key: 'survival',    icon: '💀', label: 'Survival',     desc: '30s → last = out' },
   { key: 'timeattack',  icon: '⏱️', label: 'Time Attack',  desc: '60s countdown'    },
   { key: 'suddendeath', icon: '⚡', label: 'Sudden Death', desc: '1 mistake = out'  },
@@ -311,6 +312,7 @@ const state = {
   gameStartTime: 0, totalCharsTyped: 0, wpm: 0,
   streak: 0, combo: 1, eliminated: false,
   taTimer: null, survivalTimer: null,
+  paragraph: null,
 };
 const playerFloors = {};
 
@@ -704,6 +706,34 @@ function updateStreakDisplay() {
   gsap.fromTo(el, { scale: 1.4 }, { scale: 1, duration: 0.3, ease: 'back.out(2)' });
 }
 
+function updateParagraphBanner() {
+  const banner = document.getElementById('paragraph-banner');
+  if (!banner || state.roundType !== 'paragraph') return;
+  const words = state.words;
+  const cur   = state.currentWordIndex;
+  let html = '';
+  words.forEach((word, wi) => {
+    if (wi > 0) html += ' ';
+    if (wi < cur) {
+      html += `<span class="para-done">${escHtml(word)}</span>`;
+    } else if (wi === cur) {
+      let wHtml = '';
+      for (let ci = 0; ci < word.length; ci++) {
+        const ch = escHtml(word[ci]);
+        if (ci < state.charIndex)       wHtml += `<span class="para-ch-done">${ch}</span>`;
+        else if (ci === state.charIndex) wHtml += `<span class="para-ch-cur">${ch}</span>`;
+        else                             wHtml += `<span class="para-ch-rest">${ch}</span>`;
+      }
+      html += `<span class="para-cur">${wHtml}</span>`;
+    } else {
+      html += `<span class="para-future">${escHtml(word)}</span>`;
+    }
+  });
+  banner.innerHTML = html;
+  const curEl = banner.querySelector('.para-cur');
+  if (curEl) curEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
 function updateHostVisibility() {
   if (state.isHost) {
     const wasHidden = hostControlsEl.classList.contains('hidden');
@@ -793,6 +823,11 @@ function initGame() {
   const taHud = document.getElementById('time-attack-hud');
   if (taHud) { taHud.textContent = ''; taHud.className = 'time-attack-hud hidden'; }
   updateStreakDisplay();
+  const paraBanner = document.getElementById('paragraph-banner');
+  if (paraBanner) {
+    if (state.roundType === 'paragraph') { paraBanner.classList.remove('hidden'); updateParagraphBanner(); }
+    else paraBanner.classList.add('hidden');
+  }
   finishedOverlay.classList.add('hidden');
   countdownOverlay.classList.add('hidden');
 
@@ -1478,6 +1513,7 @@ document.addEventListener('keydown', e => {
 
   // Update per-character display
   updatePlatWord();
+  updateParagraphBanner();
 
   // Word complete → jump
   if (state.charIndex >= word.length) {
@@ -1494,6 +1530,7 @@ function handleCorrect() {
   state.combo = state.streak >= 15 ? 3 : state.streak >= 10 ? 2 : state.streak >= 5 ? 1.5 : 1;
   updateStreakDisplay();
   state.currentWordIndex++;
+  updateParagraphBanner();
   state.charIndex   = 0;
   state.charResults = [];
   clearTimeout(idleTypingTimer);
@@ -1695,8 +1732,8 @@ socket.on('character-updated', ({ players }) => {
   state.players = players;
   renderPlayerList();
 });
-socket.on('game-starting', ({ words, theme, difficulty, players, roundType }) => {
-  Object.assign(state, { words, theme, difficulty, players, roundType: roundType || 'normal', currentWordIndex: 0, charIndex: 0, charResults: [] });
+socket.on('game-starting', ({ words, theme, difficulty, players, roundType, paragraph }) => {
+  Object.assign(state, { words, theme, difficulty, players, roundType: roundType || 'normal', paragraph: paragraph || null, currentWordIndex: 0, charIndex: 0, charResults: [] });
   const me = players.find(p => p.id === state.playerId);
   state.myCharIndex = me ? me.charIndex : 0;
   showScreen('screen-game');

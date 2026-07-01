@@ -1,4 +1,4 @@
-const { easy, medium, hard } = require('./wordLists');
+const { easy, medium, hard, paragraphs } = require('./wordLists');
 
 const rooms = new Map();
 const WORD_COUNTS = { easy: 10, medium: 15, hard: 20 };
@@ -93,8 +93,16 @@ function startGame(code) {
   if (!room || room.state !== 'waiting') return null;
   const nonHost = room.players.filter(p => p.id !== room.host);
   if (nonHost.length > 0 && !nonHost.every(p => p.ready)) return null;
-  const count = WORD_COUNTS[room.difficulty] || 10;
-  room.words = shuffleSlice(WORD_BANKS[room.difficulty], count);
+  if (room.roundType === 'paragraph') {
+    const bank = paragraphs[room.difficulty] || paragraphs.medium;
+    const para = bank[Math.floor(Math.random() * bank.length)];
+    room.words = para.split(' ');
+    room.paragraph = para;
+  } else {
+    const count = WORD_COUNTS[room.difficulty] || 10;
+    room.words = shuffleSlice(WORD_BANKS[room.difficulty], count);
+    room.paragraph = null;
+  }
   room.state = 'racing';
   room.finishedCount = 0;
   room.cutsceneDone = new Set();
