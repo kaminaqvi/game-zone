@@ -163,7 +163,14 @@
     </div>
 
     <!-- Paragraph preview strip (visible only in paragraph mode) -->
-    <div id="paragraph-banner" class="paragraph-banner hidden"></div>
+    <div id="paragraph-banner" class="paragraph-banner hidden">
+      <div class="para-header">
+        <span class="para-header-label">📖 Paragraph</span>
+        <span class="para-word-counter">Word <span id="para-wc-cur">1</span> / <span id="para-wc-total">?</span></span>
+      </div>
+      <div id="para-text-area" class="para-text-area"></div>
+      <div class="para-progress-bar" id="para-progress-bar"></div>
+    </div>
 
     <!-- Jump arena -->
     <div id="jump-arena" class="jump-arena"></div>

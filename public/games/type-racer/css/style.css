@@ -1083,16 +1083,87 @@ body.theme-space .stars { display: block; }
    ════════════════════════════════════════════════════════════ */
 .paragraph-banner {
   flex: 0 0 auto;
-  background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(255,255,255,0.12);
-  padding: 12px 20px; font-size: 1rem; line-height: 1.8;
-  font-family: 'Nunito', sans-serif; letter-spacing: 0.3px;
-  word-break: break-word; overflow-y: auto; max-height: 100px;
+  background: rgba(8, 4, 24, 0.92);
+  border-bottom: 2px solid rgba(109, 40, 217, 0.5);
+  position: relative;
 }
 .paragraph-banner.hidden { display: none; }
-.para-done   { color: #4ade80; }
-.para-cur    { background: rgba(252,211,77,0.15); border-radius: 3px; padding: 0 1px; }
-.para-ch-done { color: #4ade80; }
-.para-ch-cur  { color: #fcd34d; text-decoration: underline; text-underline-offset: 3px; }
-.para-ch-rest { color: rgba(255,255,255,0.9); }
-.para-future  { color: rgba(255,255,255,0.4); }
+
+.para-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 20px 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.para-header-label {
+  font-size: 0.68rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #a78bfa;
+}
+.para-word-counter {
+  font-size: 0.72rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  color: rgba(255,255,255,0.35);
+}
+.para-wc-cur {
+  color: #c4b5fd;
+  font-weight: 900;
+  font-size: 0.82rem;
+}
+
+.para-text-area {
+  padding: 12px 24px;
+  font-size: 1.22rem;
+  line-height: 2.0;
+  font-family: 'Nunito', sans-serif;
+  letter-spacing: 0.4px;
+  word-break: break-word;
+  height: 100px;
+  overflow-y: scroll;
+  scrollbar-width: none;
+}
+.para-text-area::-webkit-scrollbar { display: none; }
+
+.para-progress-bar {
+  height: 3px;
+  background: rgba(255,255,255,0.07);
+  position: relative;
+  overflow: hidden;
+}
+.para-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  width: var(--para-progress, 0%);
+  background: linear-gradient(90deg, #7c3aed, #34d399);
+  transition: width 0.35s ease;
+}
+
+.para-done    { color: #86efac; }
+.para-cur     { position: relative; }
+.para-ch-done { color: #86efac; }
+.para-ch-cur  {
+  color: #fde68a;
+  position: relative;
+}
+.para-ch-cur::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 15%; bottom: 15%;
+  width: 2px;
+  background: #fde68a;
+  border-radius: 1px;
+  animation: para-blink 0.9s step-end infinite;
+}
+@keyframes para-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.para-ch-rest { color: rgba(255,255,255,0.85); }
+.para-future  { color: rgba(255,255,255,0.28); }

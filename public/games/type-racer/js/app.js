@@ -707,10 +707,23 @@ function updateStreakDisplay() {
 }
 
 function updateParagraphBanner() {
-  const banner = document.getElementById('paragraph-banner');
+  const banner   = document.getElementById('paragraph-banner');
   if (!banner || state.roundType !== 'paragraph') return;
+  const textArea = document.getElementById('para-text-area');
+  const wcCur    = document.getElementById('para-wc-cur');
+  const wcTotal  = document.getElementById('para-wc-total');
+  const progBar  = document.getElementById('para-progress-bar');
+  if (!textArea) return;
+
   const words = state.words;
   const cur   = state.currentWordIndex;
+
+  if (wcCur)   wcCur.textContent   = cur + 1;
+  if (wcTotal) wcTotal.textContent = words.length;
+
+  const pct = Math.round(((cur + (state.charIndex / (words[cur]?.length || 1))) / words.length) * 100);
+  if (progBar) progBar.style.setProperty('--para-progress', pct + '%');
+
   let html = '';
   words.forEach((word, wi) => {
     if (wi > 0) html += ' ';
@@ -720,18 +733,22 @@ function updateParagraphBanner() {
       let wHtml = '';
       for (let ci = 0; ci < word.length; ci++) {
         const ch = escHtml(word[ci]);
-        if (ci < state.charIndex)       wHtml += `<span class="para-ch-done">${ch}</span>`;
-        else if (ci === state.charIndex) wHtml += `<span class="para-ch-cur">${ch}</span>`;
-        else                             wHtml += `<span class="para-ch-rest">${ch}</span>`;
+        if (ci < state.charIndex)        wHtml += `<span class="para-ch-done">${ch}</span>`;
+        else if (ci === state.charIndex)  wHtml += `<span class="para-ch-cur">${ch}</span>`;
+        else                              wHtml += `<span class="para-ch-rest">${ch}</span>`;
       }
       html += `<span class="para-cur">${wHtml}</span>`;
     } else {
       html += `<span class="para-future">${escHtml(word)}</span>`;
     }
   });
-  banner.innerHTML = html;
-  const curEl = banner.querySelector('.para-cur');
-  if (curEl) curEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  textArea.innerHTML = html;
+
+  const curEl = textArea.querySelector('.para-cur');
+  if (curEl) {
+    const lineH = parseFloat(getComputedStyle(textArea).lineHeight) || 39;
+    textArea.scrollTop = Math.max(0, curEl.offsetTop - lineH * 0.4);
+  }
 }
 
 function updateHostVisibility() {
