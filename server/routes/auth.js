@@ -72,10 +72,22 @@ passport.deserializeUser(async (id, done) => {
 /* ── Routes ───────────────────────────────────────────────── */
 
 // Google OAuth
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get('/google', (req, res, next) => {
+  // Store a safe returnTo path so we can redirect back after Google auth
+  const raw = req.query.returnTo;
+  if (raw && /^\/[a-zA-Z0-9/\-._~:@!$&'()*+,;=?%]*$/.test(raw)) {
+    req.session.authReturnTo = raw;
+  }
+  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+});
 router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: '/?auth=fail' }),
-  (_req, res) => res.redirect('/?auth=success')
+  (req, res) => {
+    const returnTo = req.session.authReturnTo || '/';
+    delete req.session.authReturnTo;
+    const sep = returnTo.includes('?') ? '&' : '?';
+    res.redirect(returnTo + sep + 'auth=success');
+  }
 );
 
 // Sign up (local)

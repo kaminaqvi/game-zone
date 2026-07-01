@@ -430,21 +430,32 @@ const btnCreate    = document.getElementById('btn-create');
 const btnJoin      = document.getElementById('btn-join');
 const landingError = document.getElementById('landing-error');
 
-// Auto-fill room code from ?room=XXXX share link
+// Auto-fill room code from ?room=XXXX share link; also handle ?auth=success/fail
 (function handleRoomParam() {
-  const p = new URLSearchParams(window.location.search).get('room');
-  if (p && /^[A-Z]{4}$/i.test(p)) {
-    codeInput.value = p.toUpperCase();
+  const params = new URLSearchParams(window.location.search);
+  const room   = params.get('room');
+  const auth   = params.get('auth');
+
+  if (room && /^[A-Z]{4}$/i.test(room)) {
+    codeInput.value = room.toUpperCase();
     history.replaceState({}, '', window.location.pathname);
     landingError.style.color = '#4ade80';
-    landingError.textContent = `Room ${p.toUpperCase()} found! Enter your name and tap Join.`;
+    landingError.textContent = `Room ${room.toUpperCase()} found! Enter your name and tap Join.`;
     nameInput.focus();
+  }
+  if (auth === 'success') {
+    history.replaceState({}, '', window.location.pathname);
+    landingError.style.color = '#4ade80';
+    landingError.textContent = '✓ Signed in! Ready to race.';
+  } else if (auth === 'fail') {
+    history.replaceState({}, '', window.location.pathname);
+    landingError.style.color = '#ef4444';
+    landingError.textContent = 'Sign-in failed. Please try again.';
   }
 })();
 
-// Pre-fill name from profile
+// Pre-fill name from profile; show auth strip when not logged in
 (async function initProfile() {
-  // If logged in via portal, pre-fill name and lock the field
   try {
     const res = await fetch('/api/auth/me', { credentials: 'include' });
     if (res.ok) {
@@ -460,14 +471,78 @@ const landingError = document.getElementById('landing-error');
           tag.textContent = '✓ Logged in as ' + data.user.username;
           nameCard.appendChild(tag);
         }
+        // Update auth strip to show signed-in state
+        const strip = document.getElementById('auth-strip');
+        if (strip) {
+          strip.innerHTML = `<span style="color:#4ade80;font-size:0.82rem">✓ Signed in as <strong>${data.user.username}</strong></span>`;
+          strip.classList.remove('hidden');
+        }
         return;
       }
     }
   } catch { /* guest — fall through */ }
+  // Not logged in — show sign-in strip
+  document.getElementById('auth-strip')?.classList.remove('hidden');
+  document.getElementById('btn-open-auth')?.addEventListener('click', openGameAuth);
   const p = PlayerProfile.get();
   if (p.name) nameInput.value = p.name;
   updateProfileBar(p);
 })();
+
+/* ── Game-page auth modal ──────────────────────────────────── */
+function openGameAuth() {
+  const modal = document.getElementById('game-auth-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  const code = codeInput?.value.trim();
+  const returnTo = code ? `/games/type-racer/?room=${code}` : `/games/type-racer/`;
+  const googleBtn = document.getElementById('game-google-btn');
+  if (googleBtn) googleBtn.href = `/api/auth/google?returnTo=${encodeURIComponent(returnTo)}`;
+  document.getElementById('game-auth-error')?.classList.add('hidden');
+  document.getElementById('game-login-form')?.reset();
+}
+
+function closeGameAuth() {
+  document.getElementById('game-auth-modal')?.classList.add('hidden');
+}
+
+function closeGameAuthOnOverlay(e) {
+  if (e.target === document.getElementById('game-auth-modal')) closeGameAuth();
+}
+
+async function submitGameLogin(e) {
+  e.preventDefault();
+  const btn   = document.getElementById('game-login-btn');
+  const errEl = document.getElementById('game-auth-error');
+  btn.disabled = true; btn.textContent = 'Logging in…';
+  errEl?.classList.add('hidden');
+  const fd = new FormData(e.target);
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: fd.get('email'), password: fd.get('password') }),
+    });
+    const data = await res.json();
+    if (res.ok && data.user) {
+      closeGameAuth();
+      nameInput.value = data.user.username;
+      nameInput.readOnly = true;
+      nameInput.style.cssText = 'opacity:0.7;cursor:default;background:rgba(255,255,255,0.04)';
+      const strip = document.getElementById('auth-strip');
+      if (strip) {
+        strip.innerHTML = `<span style="color:#4ade80;font-size:0.82rem">✓ Signed in as <strong>${data.user.username}</strong></span>`;
+      }
+      landingError.style.color = '#4ade80';
+      landingError.textContent = '✓ Signed in! Ready to race.';
+    } else {
+      if (errEl) { errEl.textContent = data.error || 'Login failed'; errEl.classList.remove('hidden'); }
+    }
+  } catch {
+    if (errEl) { errEl.textContent = 'Network error, please try again.'; errEl.classList.remove('hidden'); }
+  }
+  btn.disabled = false; btn.textContent = 'Log In';
+}
 
 function updateProfileBar(p) {
   const bar = document.getElementById('profile-bar');
